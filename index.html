@@ -43,14 +43,6 @@
             align-items: center;
         }
 
-        .logo {
-            width: 50px;
-            height: 50px;
-            margin-right: 15px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
         .logo-text {
             font-size: 24px;
             font-weight: 700;
@@ -140,12 +132,6 @@
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
         }
 
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
-            color: var(--primary);
-        }
-
         .feature-card h3 {
             font-size: 1.5rem;
             margin-bottom: 15px;
@@ -227,13 +213,6 @@
             align-items: center;
         }
 
-        .footer-logo img {
-            width: 40px;
-            height: 40px;
-            margin-right: 10px;
-            border-radius: 50%;
-        }
-
         .footer-links {
             display: flex;
             gap: 20px;
@@ -295,12 +274,6 @@
             }
         }
 
-        .carrot-decor {
-            position: absolute;
-            opacity: 0.1;
-            z-index: 1;
-        }
-
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 2.5rem;
@@ -319,12 +292,10 @@
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <header>
         <div class="logo-container">
-            <img src="/download.jpeg" alt="Pirrot Logo" class="logo">
             <div class="logo-text">Pirrot</div>
         </div>
     </header>
@@ -332,21 +303,9 @@
     <main class="main">
         <section class="hero">
             <div class="particles" id="particles"></div>
-            <div class="carrot-decor" style="top: 10%; left: 10%; transform: rotate(45deg);">
-                <img src="/download.jpeg" width="150" alt="">
-            </div>
-            <div class="carrot-decor" style="bottom: 10%; right: 15%; transform: rotate(-30deg);">
-                <img src="/download.jpeg" width="200" alt="">
-            </div>
-            <div class="carrot-decor" style="top: 20%; right: 25%; transform: rotate(15deg);">
-                <img src="/download.jpeg" width="100" alt="">
-            </div>
             <div class="hero-content">
                 <h1>Build Better Discord Communities with <span style="color: var(--primary);">Pirrot</span></h1>
                 <p>The AI-powered Discord bot that helps you manage, grow, and engage your community. Automate moderation, create interactive experiences, and build a thriving server with ease.</p>
-                <div class="floating" style="margin-bottom: 30px;">
-                    <img src="/download.jpeg" alt="Pirrot Bot" width="150" style="border-radius: 50%; box-shadow: 0 5px 30px rgba(255, 138, 0, 0.5);">
-                </div>
                 <a href="https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands" class="btn btn-primary">Add to Discord</a>
             </div>
         </section>
@@ -355,32 +314,26 @@
             <h2 class="section-title">Why Choose Pirrot?</h2>
             <div class="feature-grid">
                 <div class="feature-card">
-                    <i class="fas fa-robot feature-icon"></i>
                     <h3>AI-Powered Assistance</h3>
                     <p>Leverage advanced artificial intelligence to handle routine tasks, answer member questions, and create personalized experiences.</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-shield-alt feature-icon"></i>
                     <h3>Smart Moderation</h3>
                     <p>Keep your server safe with automated content filtering, spam detection, and rule enforcement that adapts to your community's needs.</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-chart-line feature-icon"></i>
                     <h3>Growth Tools</h3>
                     <p>Attract and retain members with welcome flows, custom roles, engagement rewards, and analytics to track server health.</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-gamepad feature-icon"></i>
                     <h3>Interactive Experiences</h3>
                     <p>Engage your community with games, polls, giveaways, and custom commands that make your server more interactive and fun.</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-puzzle-piece feature-icon"></i>
                     <h3>Easy Integration</h3>
                     <p>Seamlessly connect with other platforms and services to extend functionality and create a cohesive community experience.</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-user-friends feature-icon"></i>
                     <h3>Community Building</h3>
                     <p>Foster meaningful connections among members with ice-breakers, discussion prompts, and community events.</p>
                 </div>
@@ -397,7 +350,6 @@
     <footer>
         <div class="footer-content">
             <div class="footer-logo">
-                <img src="/download.jpeg" alt="Pirrot Logo">
                 <span>Pirrot</span>
             </div>
             <div class="footer-links">
@@ -487,4 +439,3 @@
     </script>
 </body>
 </html>
-
