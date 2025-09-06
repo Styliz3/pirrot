@@ -10,20 +10,21 @@
     header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:#111;border-bottom:1px solid #222}
     .brand{font-weight:800;font-size:18px}
     .btn{padding:8px 14px;border-radius:8px;background:var(--brand);border:none;color:#fff;font-weight:600;cursor:pointer;font-size:14px}
-    main{display:grid;grid-template-columns:260px 1fr;gap:16px;padding:16px}
+    main{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:16px}
     .card{background:var(--panel);border-radius:12px;padding:14px}
     .controls label{font-size:13px;color:var(--muted);margin-top:8px;display:block}
     .controls select,.controls button,.controls input{width:100%;margin-top:4px;padding:8px 10px;border-radius:8px;border:1px solid #333;background:#222;color:#fff}
     .controls .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-    .player{position:relative;width:100%;max-width:360px;margin:auto;background:#000;border-radius:12px;overflow:hidden}
+    .player{position:relative;width:100%;max-width:400px;margin:auto;background:#000;border-radius:12px;overflow:hidden}
     video{width:100%;height:auto;display:block}
-    .captions{position:absolute;bottom:6%;width:100%;text-align:center}
+    .captions{position:absolute;bottom:8%;width:100%;text-align:center}
     .caption-line{font-size:clamp(16px,4vw,28px);font-weight:800;color:#fff;text-shadow:2px 2px 0 #000,-2px -2px 0 #000,0 0 8px #000}
     .caption-line .em{color:#ffe46b}
-    .timeline{margin-top:10px;max-height:120px;overflow-y:auto;font-size:13px}
+    .timeline{margin-top:10px;max-height:140px;overflow-y:auto;font-size:13px}
     .timeline div{margin-bottom:4px;padding:4px 6px;border-radius:6px;background:#2a2a2d}
     pre{font-size:12px;white-space:pre-wrap;color:var(--muted);margin-top:10px}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 </head>
 <body>
   <header>
@@ -47,6 +48,7 @@
       <div class="actions">
         <button id="go">Generate</button>
         <button id="downloadVTT" disabled>Download VTT</button>
+        <button id="export" disabled>Export MP4</button>
       </div>
       <pre id="log"></pre>
     </div>
@@ -56,6 +58,7 @@
         <video id="video" controls></video>
         <div class="captions"><div class="caption-line" id="caption"></div></div>
       </div>
+      <h4 style="margin-top:10px">Caption Timeline Preview</h4>
       <div class="timeline" id="timeline"></div>
     </div>
   </main>
@@ -70,6 +73,7 @@ const wordsPerEl=document.getElementById('wordsPer');
 const emEveryEl=document.getElementById('emEvery');
 const goBtn=document.getElementById('go');
 const dlBtn=document.getElementById('downloadVTT');
+const expBtn=document.getElementById('export');
 const logEl=document.getElementById('log');
 const tlEl=document.getElementById('timeline');
 
@@ -81,7 +85,7 @@ function log(m){logEl.textContent+="\\n"+m;}
 
 fileEl.onchange=()=>{const f=fileEl.files?.[0];if(!f)return;if(lastURL)URL.revokeObjectURL(lastURL);lastURL=URL.createObjectURL(f);videoEl.src=lastURL;log('Video loaded.');};
 
-// Call Groq Whisper API
+// Groq Whisper API
 async function transcribeWithGroq(file, apiKey){
   const formData=new FormData();
   formData.append("file",file);
@@ -118,9 +122,13 @@ function attachOverlay(groups,every){
 }
 
 function renderTimeline(groups){
-  tlEl.innerHTML='';groups.forEach(g=>{
+  tlEl.innerHTML='';
+  groups.forEach((g,i)=>{
     const d=document.createElement('div');
-    d.textContent=`${g.start.toFixed(1)}s - ${g.end.toFixed(1)}s: ${g.text}`;
+    d.textContent=`${i+1}. [${g.start.toFixed(1)}s - ${g.end.toFixed(1)}s] ${g.text}`;
+    // Click to preview that caption
+    d.style.cursor="pointer";
+    d.onclick=()=>{ videoEl.currentTime=g.start+0.1; videoEl.play(); };
     tlEl.appendChild(d);
   });
 }
@@ -130,12 +138,11 @@ async function generate(){
   const apiKey=apiKeyEl.value.trim();
   if(!apiKey){alert("Enter Groq API key");return;}
   if(!f){alert('Pick a video');return;}
-  goBtn.disabled=true;dlBtn.disabled=true;captionEl.textContent='';log('Sending to Groq...');
+  goBtn.disabled=true;dlBtn.disabled=true;expBtn.disabled=true;captionEl.textContent='';log('Sending to Groq...');
 
   try {
     const data=await transcribeWithGroq(f,apiKey);
     log("Got transcription.");
-    // Groq returns segments with start/end
     const allWords=[];
     (data.segments||[]).forEach(seg=>{
       if(seg.words){
@@ -154,11 +161,33 @@ async function generate(){
     const url=URL.createObjectURL(blob);
     dlBtn.disabled=false;
     dlBtn.onclick=()=>{const a=document.createElement('a');a.href=url;a.download='captions.vtt';a.click();};
-    log("✅ Done!");
+    expBtn.disabled=false;
+    expBtn.onclick=()=>exportVideo(f,groups);
+    log("✅ Done! Preview captions in player or timeline before export.");
   } catch(e){
     log("Error: "+e.message);
   }
   goBtn.disabled=false;
+}
+
+// Export with ffmpeg.wasm
+async function exportVideo(file,groups){
+  log('Exporting MP4 with captions...');
+  const { createFFmpeg, fetchFile } = FFmpeg;
+  const ffmpeg=createFFmpeg({log:true});
+  await ffmpeg.load();
+  ffmpeg.FS('writeFile','input.mp4',await fetchFile(file));
+
+  const filter=groups.map(g=>{
+    const safe=g.text.replace(/'/g,"\\'").replace(/:/g,"\\:");
+    return `drawtext=text='${safe}':fontcolor=white:fontsize=40:borderw=3:enable='between(t,${g.start},${g.end})':x=(w-text_w)/2:y=h-(text_h*3)`;
+  }).join(",");
+
+  await ffmpeg.run('-i','input.mp4','-vf',filter,'-c:a','copy','out.mp4');
+  const data=ffmpeg.FS('readFile','out.mp4');
+  const url=URL.createObjectURL(new Blob([data.buffer],{type:'video/mp4'}));
+  const a=document.createElement('a');a.href=url;a.download='captioned.mp4';a.click();
+  log('🎉 Export complete!');
 }
 
 goBtn.onclick=()=>generate();
