@@ -2,55 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>EasyRun! – Free Servers</title>
+  <title>EasyRun! Dashboard</title>
   <style>
     body { font-family: Arial, sans-serif; background: #0a0a0a; color: #eee; margin: 0; padding: 0; }
     header { background: #111; padding: 20px; text-align: center; border-bottom: 2px solid #0ff; }
     h1 { color: #0ff; margin: 0; }
-    main { max-width: 1000px; margin: auto; padding: 20px; }
+    main { max-width: 1100px; margin: auto; padding: 20px; }
     button { background: #0ff; color: #000; border: none; padding: 8px 16px; margin: 5px; border-radius: 6px; cursor: pointer; }
     button:hover { opacity: 0.8; }
+    select, input, textarea { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 8px; margin: 6px 0; border-radius: 4px; }
     .server { background: #1a1a1a; border: 1px solid #333; padding: 15px; margin: 10px 0; border-radius: 8px; }
     .logs { background: #111; max-height: 150px; overflow: auto; padding: 10px; font-size: 12px; border-radius: 6px; }
     .section { margin-top: 30px; }
-    input, textarea { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 8px; margin: 4px 0; border-radius: 4px; }
-    label { font-weight: bold; }
+    h2 { color: #0ff; }
   </style>
 </head>
 <body>
   <header>
     <h1>🚀 EasyRun! Dashboard</h1>
-    <p>Create and manage free API servers instantly.</p>
+    <p>Run servers instantly — choose templates, add routes, view analytics.</p>
   </header>
   <main>
-    <button onclick="createServer()">+ Create New Server</button>
-    <div id="servers"></div>
-
     <div class="section">
-      <h2>Add Route</h2>
-      <form onsubmit="addRoute(event)">
-        <label>Server ID</label>
-        <input id="routeServerId" required>
-        <label>Path</label>
-        <input id="routePath" placeholder="/myroute" required>
-        <label>Code</label>
-        <textarea id="routeCode" rows="4" placeholder="res.json({msg:'Hello'})" required></textarea>
-        <button type="submit">Add Route</button>
+      <h2>Create Server</h2>
+      <form onsubmit="createServer(event)">
+        <label>Server Name</label>
+        <input id="serverName" placeholder="My Server">
+        <label>Template</label>
+        <select id="serverTemplate">
+          <option value="chatbot">Chatbot API</option>
+          <option value="json">JSON API</option>
+          <option value="webhook">Webhook</option>
+          <option value="blank">Blank</option>
+        </select>
+        <button type="submit">+ Create Server</button>
       </form>
     </div>
 
     <div class="section">
-      <h2>Update Settings</h2>
-      <form onsubmit="updateSettings(event)">
-        <label>Server ID</label>
-        <input id="settingsServerId" required>
-        <label>Require API Key?</label>
-        <select id="requireKey">
-          <option value="true">Yes</option>
-          <option value="false">No</option>
-        </select>
-        <button type="submit">Update Settings</button>
-      </form>
+      <h2>Servers</h2>
+      <div id="servers"></div>
     </div>
   </main>
 
@@ -70,52 +61,34 @@
           <p>Created: ${new Date(s.created).toLocaleString()}</p>
           <p>API Key: <code>${s.apiKey}</code></p>
           <p>Routes: ${Object.keys(s.routes).join(", ")}</p>
-          <a href="/api/api.js?id=${s.id}&route=hello&x-api-key=${s.apiKey}" target="_blank">Test /hello</a><br>
+          <p>Test Links: ${Object.keys(s.routes).map(r => 
+            `<a href="/api/api.js?id=${s.id}&route=${r.slice(1)}" target="_blank">${r}</a>`
+          ).join(" | ")}</p>
           <button onclick="deleteServer('${s.id}')">Delete</button>
           <div class="logs">
-            ${s.logs.map(l => `[${new Date(l.time).toLocaleTimeString()}] ${l.method} ${l.path} from ${l.ip}`).join("<br>")}
+            ${s.logs && s.logs.length ? s.logs.map(l => 
+              `[${new Date(l.time).toLocaleTimeString()}] ${l.method} ${l.path} from ${l.ip}`
+            ).join("<br>") : "No logs yet"}
           </div>
         `;
         container.appendChild(div);
       });
     }
 
-    async function createServer() {
+    async function createServer(e) {
+      e.preventDefault();
+      const name = document.getElementById('serverName').value;
+      const template = document.getElementById('serverTemplate').value;
       await fetch('/api/api.js', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: "New EasyRun Server" })
+        body: JSON.stringify({ name, template })
       });
       loadServers();
     }
 
     async function deleteServer(id) {
       await fetch(`/api/api.js?id=${id}`, { method: 'DELETE' });
-      loadServers();
-    }
-
-    async function addRoute(e) {
-      e.preventDefault();
-      const id = document.getElementById('routeServerId').value;
-      const path = document.getElementById('routePath').value;
-      const code = document.getElementById('routeCode').value;
-      await fetch(`/api/api.js?id=${id}&action=addRoute`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path, code })
-      });
-      loadServers();
-    }
-
-    async function updateSettings(e) {
-      e.preventDefault();
-      const id = document.getElementById('settingsServerId').value;
-      const requireKey = document.getElementById('requireKey').value === "true";
-      await fetch(`/api/api.js?id=${id}&action=settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings: { requireKey } })
-      });
       loadServers();
     }
 
