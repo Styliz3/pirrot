@@ -1,486 +1,362 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MiniFigma Maverick — Crazy UI Lab</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auto Subtitles – Shorts Generator</title>
+  <link rel="icon" href="data:," />
   <style>
     :root {
-      --bg:#0b0e14; --panel:#111523; --muted:#171c2b; --ink:#e9ecf1; --sub:#aab2c7; --acc:#7c5cff; --green:#21d19f; --red:#ff6b6b;
-      --guide:#5d6a8a; --outline:#a0b4ff;
+      --bg: #0b0b0d;
+      --panel: #121216;
+      --text: #e8e8f0;
+      --muted: #9aa0aa;
+      --brand: #7c5cff;
     }
-    html,body { height:100%; background:var(--bg); color:var(--ink); font-family: Inter, ui-sans-serif, system-ui; }
-    .glass { background:rgba(255,255,255,0.05); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,0.08); }
-    .btn { border:1px solid #2b3350; background:linear-gradient(180deg,#1a2034,#12162a); padding:.5rem .75rem; border-radius:.7rem; }
-    .btn:hover { border-color:#3a4470; }
-    .toolbar-label { color:var(--sub); font-size:.75rem }
-    .handle { position:absolute; width:10px; height:10px; border:2px solid white; background:var(--acc); border-radius:999px; transform:translate(-50%,-50%); pointer-events:auto; }
-    .canvas-wrap { position:relative; width:100%; height:100%; overflow:scroll; background:radial-gradient(ellipse at top, #0f1426 0%, #0b0e14 35%); }
-    .checker { background-image: linear-gradient(45deg, #1b2136 25%, transparent 25%),
-                               linear-gradient(-45deg, #1b2136 25%, transparent 25%),
-                               linear-gradient(45deg, transparent 75%, #1b2136 75%),
-                               linear-gradient(-45deg, transparent 75%, #1b2136 75%);
-               background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
-    .frame { position:absolute; background:transparent; outline:1px dashed rgba(255,255,255,.15); }
-    .node { position:absolute; box-sizing:border-box; }
-    .node.selected { outline:1px dashed var(--outline); outline-offset:1px; }
-    .guides { position:absolute; inset:0; pointer-events:none; }
-    .guide { position:absolute; border:1px dashed var(--guide); }
-    .safe { border-color: #89a7ff66; }
-    .outline-overlay { position:absolute; inset:0; border:0px solid var(--outline); pointer-events:none; box-sizing:border-box; }
-    .dot { width:8px; height:8px; border-radius:999px; background:var(--outline); position:absolute; }
-    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: #12162a; border:1px solid #293155; padding:.6rem .85rem; border-radius:.7rem; opacity:.95; }
-    .kbar { position: fixed; left: 50%; transform: translateX(-50%); top: 12px; width: min(920px, 92vw); z-index:80; }
-    .kbar input { width:100%; padding: .9rem 1rem; border-radius:.8rem; background: #0e1324; border:1px solid #2c355a; color: var(--ink); }
-    .pill { border:1px solid #2c355a; padding:.2rem .5rem; border-radius:999px; font-size:.75rem; color: var(--sub); }
-    .panel-title { font-size:.75rem; letter-spacing:.08em; text-transform:uppercase; color:#8e97b5; }
-    .x-scroll-shadows { box-shadow: inset 10px 0 10px -10px rgba(0,0,0,.45), inset -10px 0 10px -10px rgba(0,0,0,.45); }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 70% -20%, #191a22 0%, #0b0b0d 60%);
+      color: var(--text);
+      font: 15px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      display: grid;
+      place-items: start center;
+      padding: 24px;
+    }
+
+    /* Komika Axis font (drop KomikaAxis.ttf in the project root or adjust the src) */
+    @font-face {
+      font-family: 'KomikaAxis';
+      src: url('./KomikaAxis.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    .wrap { width: min(1100px, 100%); }
+
+    .header {
+      display: flex; gap: 16px; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.2px; }
+    .tag { color: var(--muted); font-size: 13px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 4px 30px rgba(0,0,0,0.25);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .controls label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 6px; }
+    .controls input[type="file"], .controls select, .controls button {
+      width: 100%;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .controls button { cursor: pointer; font-weight: 600; }
+    .controls .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .actions { display: flex; gap: 10px; margin-top: 12px; }
+    .primary { background: var(--brand); border: none; }
+
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; opacity: 0.9; white-space: pre-wrap; }
+
+    /* Player */
+    .player {
+      position: relative;
+      aspect-ratio: 9/16;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+    video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+    /* Caption overlay (Komika Axis, white fill, black stroke) */
+    .captions {
+      pointer-events: none;
+      position: absolute; inset: 0; display: grid; place-items: end center; padding: 6% 4% 8%;
+    }
+    .caption-line {
+      font-family: KomikaAxis, Impact, 'Arial Black', system-ui, sans-serif;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fff;
+      /* pseudo stroke with multiple shadows */
+      text-shadow:
+        0 2px 0 #000,
+        2px 0 0 #000,
+        0 -2px 0 #000,
+        -2px 0 0 #000,
+        2px 2px 0 #000,
+        -2px -2px 0 #000,
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        0 0 10px rgba(0,0,0,0.8);
+      text-align: center;
+      line-height: 1.1;
+      /* responsive size: bigger for vertical video */
+      font-size: clamp(20px, 5vw, 42px);
+      transform: translateY(-2%);
+    }
+    .caption-line .em { color: #ffe46b; }
+
+    .pill {
+      display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 999px;
+      background: rgba(124, 92, 255, 0.15); border: 1px solid rgba(124,92,255,0.35);
+      font-size: 12px; color: #cfc8ff; font-weight: 600;
+    }
   </style>
+  <!-- Transformers.js for on-device ASR (Whisper tiny.en) -->
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.0/dist/transformers.min.js"></script>
 </head>
-<body class="h-full">
-  <!-- Command Bar (F2) -->
-  <div id="kbar" class="kbar hidden">
-    <div class="glass p-3 rounded-xl">
-      <div class="flex items-center gap-2 mb-2"><span class="pill">F2</span><span class="text-sm text-slate-300">Type a UI prompt, or drop an image → enter</span></div>
-      <form id="kbar-form" class="flex items-center gap-2">
-        <input id="prompt" placeholder="e.g. dashboard with left nav, cards, chart, CTA button" />
-        <input id="kbar-file" type="file" accept="image/*" class="hidden" />
-        <button type="button" id="attachBtn" class="btn">Attach Image</button>
-        <button class="btn">Generate</button>
-      </form>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1>Auto Subtitles for Shorts</h1>
+        <div class="tag">Upload a short video, pick 1‑word or 3‑word captions, click <b>Generate</b>.</div>
+      </div>
+      <div class="pill">On‑device • No upload • Free</div>
     </div>
-  </div>
 
-  <!-- Top Toolbar -->
-  <div class="sticky top-0 z-50 w-full x-scroll-shadows backdrop-blur border-b border-white/5" style="background:linear-gradient(180deg,rgba(17,21,35,.8),rgba(17,21,35,.55));">
-    <div class="max-w![1600px] mx-auto px-4 py-2 flex items-center gap-3">
-      <div class="font-extrabold tracking-tight text-lg">MiniFigma <span class="text-xs text-slate-400 font-semibold">Maverick</span></div>
-      <button id="newFrame" class="btn">New Frame</button>
-      <label class="btn cursor-pointer">
-        <input type="file" id="uploadAssets" accept="image/*" multiple class="hidden" /> Upload Assets
-      </label>
-      <div class="flex items-center gap-3 ml-4">
-        <div>
-          <div class="toolbar-label">Fill</div>
-          <input type="color" id="fillColor" value="#5b8cff" />
+    <div class="grid">
+      <!-- Left: controls -->
+      <div class="card controls">
+        <label>Upload video (MP4/MOV/WEBM)</label>
+        <input id="file" type="file" accept="video/*" />
+
+        <div class="row">
+          <div>
+            <label>Words per subtitle</label>
+            <select id="wordsPer">
+              <option value="1">1 (karaoke‑like)</option>
+              <option value="3" selected>Up to 3</option>
+            </select>
+          </div>
+          <div>
+            <label>Emphasize every</label>
+            <select id="emEvery">
+              <option value="0" selected>No emphasis</option>
+              <option value="3">3rd word</option>
+              <option value="5">5th word</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <div class="toolbar-label">Stroke</div>
-          <input type="color" id="strokeColor" value="#141824" />
+
+        <div class="actions">
+          <button class="primary" id="go">Generate</button>
+          <button id="downloadVTT" disabled>Download .vtt</button>
         </div>
-        <div>
-          <div class="toolbar-label">Stroke px</div>
-          <input type="range" id="strokeSize" min="0" max="24" value="2" />
-        </div>
-        <div>
-          <div class="toolbar-label">Radius</div>
-          <input type="range" id="cornerRadius" min="0" max="64" value="12" />
-        </div>
-        <div>
-          <div class="toolbar-label">Opacity</div>
-          <input type="range" id="opacity" min="0" max="100" value="100" />
-        </div>
-        <label class="flex items-center gap-2 mt-5 select-none"><input id="shadow" type="checkbox" class="scale-125" /> <span class="toolbar-label">Shadow</span></label>
+
+        <div style="height:12px"></div>
+        <div class="log" id="log"></div>
       </div>
 
-      <div class="ml-auto flex items-center gap-2">
-        <button id="cameraMode" class="btn">Camera Mode</button>
-        <select id="devicePreset" class="glass px-3 py-2 rounded-md border border-white/10">
-          <option value="1080x1080">1080×1080</option>
-          <option value="1920x1080" selected>1920×1080 (FHD)</option>
-          <option value="2560x1440">2560×1440 (QHD)</option>
-          <option value="3840x2160">3840×2160 (4K)</option>
-          <option value="1080x1920">1080×1920 (Story)</option>
-        </select>
-        <select id="pixelDensity" class="glass px-3 py-2 rounded-md border border-white/10">
-          <option value="1">1×</option>
-          <option value="2" selected>2×</option>
-          <option value="3">3×</option>
-        </select>
-        <input type="number" id="outlinePx" class="glass px-2 py-2 rounded-md border border-white/10 w-24" value="0" min="0" max="64" placeholder="Outline px" />
-        <label class="flex items-center gap-2 select-none"><input id="bgToggle" type="checkbox" class="scale-125" checked/> <span class="toolbar-label">Background</span></label>
-        <button id="exportBtn" class="btn">Export PNG</button>
+      <!-- Right: player -->
+      <div class="card">
+        <div class="player">
+          <video id="video" controls playsinline></video>
+          <div class="captions"><div class="caption-line" id="caption"></div></div>
+        </div>
       </div>
     </div>
   </div>
-
-  <!-- Main -->
-  <div class="grid grid-cols-[280px_1fr_320px] gap-3 px-3 h-[calc(100%-60px)]">
-    <!-- Assets Panel -->
-    <aside class="glass rounded-xl p-3 overflow-auto">
-      <div class="panel-title mb-3">Assets</div>
-      <div id="assets" class="grid grid-cols-2 gap-3"></div>
-    </aside>
-
-    <!-- Canvas Area -->
-    <main class="glass rounded-xl p-2">
-      <div id="canvasWrap" class="canvas-wrap rounded-lg checker">
-        <div id="frame" class="frame" style="left:160px; top:120px; width:1200px; height:700px;">
-          <div class="guides" id="guides"></div>
-          <div class="outline-overlay" id="outlineOverlay"></div>
-        </div>
-      </div>
-    </main>
-
-    <!-- Inspector / Layers -->
-    <aside class="glass rounded-xl p-3 overflow-auto">
-      <div class="panel-title mb-2">Layers</div>
-      <div id="layers" class="space-y-1"></div>
-      <hr class="my-4 border-white/10" />
-      <div class="panel-title mb-2">Selection</div>
-      <div id="selectionPanel" class="text-sm text-slate-300">No selection</div>
-    </aside>
-  </div>
-
-  <div id="toast" class="toast hidden"></div>
 
 <script>
-// ====== State ======
-const state = {
-  assets: [], // {id, name, dataURL, w, h}
-  nodes: [],  // {id, type:'rect'|'image'|'text', x,y,w,h, r, fill, stroke, strokeSize, opacity, shadow, src?, text?, font?, align?}
-  sel: null,  // selected node id
-  dragging: null,
-  resizing: null,
-  frame: { x:160, y:120, w:1200, h:700, bg:'#12162a' },
-  cameraMode:false,
-  outlinePx:0,
-};
+const logEl = document.getElementById('log');
+function log(msg) { logEl.textContent += `\n${msg}`; }
 
-const gid = ()=>'id_'+Math.random().toString(36).slice(2,9);
+const fileEl = document.getElementById('file');
+const videoEl = document.getElementById('video');
+const captionEl = document.getElementById('caption');
+const wordsPerEl = document.getElementById('wordsPer');
+const emEveryEl = document.getElementById('emEvery');
+const goBtn = document.getElementById('go');
+const dlBtn = document.getElementById('downloadVTT');
 
-// ====== DOM ======
-const frameEl = document.getElementById('frame');
-const guidesEl = document.getElementById('guides');
-const layersEl = document.getElementById('layers');
-const assetsEl = document.getElementById('assets');
-const selectionPanel = document.getElementById('selectionPanel');
-const outlineOverlay = document.getElementById('outlineOverlay');
+let lastURL; let cues = [];
 
-// ====== Helpers ======
-function toast(msg, ms=1600){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), ms); }
-function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
-function applyNodeStyles(el,node){
-  el.style.left = node.x + 'px';
-  el.style.top = node.y + 'px';
-  el.style.width = node.w + 'px';
-  el.style.height = node.h + 'px';
-  el.style.opacity = (node.opacity ?? 100)/100;
-  el.style.borderRadius = (node.r||0)+'px';
-  el.style.boxShadow = node.shadow ? '0 10px 30px rgba(0,0,0,.35)' : 'none';
-  if(node.type==='rect' || node.type==='text'){
-    el.style.background = node.type==='rect' ? (node.fill||'#5b8cff') : 'transparent';
-    el.style.border = (node.strokeSize||0)+'px solid '+(node.stroke||'transparent');
-    if(node.type==='text'){
-      el.style.color = node.fill || '#e9ecf1';
-      el.style.display='flex'; el.style.alignItems='center'; el.style.justifyContent='center';
-      el.style.font = node.font || '600 24px Inter';
-      el.style.textAlign = node.align || 'center';
-      el.textContent = node.text || 'Text';
-    }
+fileEl.addEventListener('change', () => {
+  const f = fileEl.files?.[0];
+  if (!f) return;
+  if (lastURL) URL.revokeObjectURL(lastURL);
+  lastURL = URL.createObjectURL(f);
+  videoEl.src = lastURL;
+  logEl.textContent = 'Ready. Click Generate to transcribe.';
+});
+
+// Convert a File (video) -> mono Float32Array at 16000 Hz using Web Audio
+async function decodeToMono16k(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const audioCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 16000 * 1200, 16000); // up to 20 min buffer
+  // Try decode using a normal AudioContext first to get AudioBuffer
+  const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+  let decoded;
+  try {
+    decoded = await tmpCtx.decodeAudioData(arrayBuffer.slice(0));
+  } catch (e) {
+    tmpCtx.close();
+    throw new Error('Could not decode audio from this video in the browser. Try MP4 (H.264/AAC).');
   }
-  if(node.type==='image'){
-    el.style.background = 'transparent';
-    el.style.border = (node.strokeSize||0)+'px solid '+(node.stroke||'transparent');
-    el.style.overflow='hidden';
-    let img = el.querySelector('img');
-    if(!img){ img = new Image(); img.draggable=false; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; el.appendChild(img); }
-    img.src = node.src;
-    img.style.borderRadius=(node.r||0)+'px';
+  const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * 16000), 16000);
+  const src = offline.createBufferSource();
+  // Downmix to mono
+  const mono = offline.createBuffer(1, decoded.length, decoded.sampleRate);
+  const ch0 = decoded.getChannelData(0);
+  if (decoded.numberOfChannels === 1) {
+    mono.copyToChannel(ch0, 0);
+  } else {
+    const ch1 = decoded.getChannelData(1);
+    const m = mono.getChannelData(0);
+    const n = decoded.length;
+    for (let i = 0; i < n; i++) m[i] = 0.5 * (ch0[i] + ch1[i]);
   }
+  // Resample by playing into OfflineAudioContext at 16k
+  const tmp = offline.createBufferSource();
+  tmp.buffer = mono;
+  tmp.connect(offline.destination);
+  tmp.start();
+  const rendered = await offline.startRendering();
+  const mono16k = rendered.getChannelData(0);
+  tmpCtx.close();
+  return mono16k;
 }
 
-function render(){
-  // frame
-  frameEl.style.left = state.frame.x+'px';
-  frameEl.style.top = state.frame.y+'px';
-  frameEl.style.width = state.frame.w+'px';
-  frameEl.style.height = state.frame.h+'px';
-  frameEl.style.background = document.getElementById('bgToggle').checked ? state.frame.bg : 'transparent';
-  // nodes
-  frameEl.querySelectorAll('.node').forEach(n=>n.remove());
-  for(const node of state.nodes){
-    const el = document.createElement('div');
-    el.className = 'node';
-    el.dataset.id = node.id;
-    applyNodeStyles(el,node);
-    if(state.sel===node.id) el.classList.add('selected');
+// Build WebVTT from word list
+function buildVTT(groups) {
+  let vtt = 'WEBVTT\n\n';
+  function fmt(t) {
+    const h = Math.floor(t / 3600).toString().padStart(2,'0');
+    const m = Math.floor((t % 3600) / 60).toString().padStart(2,'0');
+    const s = (t % 60).toFixed(3).padStart(6,'0');
+    return `${h}:${m}:${s.replace('.',',')}`.replace(',', '.'); // WebVTT uses '.'
+  }
+  groups.forEach((g, i) => {
+    vtt += `${i+1}\n${fmt(g.start)} --> ${fmt(g.end)}\n${g.text}\n\n`;
+  });
+  return vtt;
+}
 
-    // drag/select
-    el.addEventListener('pointerdown',(e)=>{
-      state.sel=node.id; updateInspector();
-      state.dragging={ id:node.id, ox:e.clientX - node.x, oy:e.clientY - node.y };
-      (e.target).setPointerCapture(e.pointerId);
-    });
-    el.addEventListener('pointermove',(e)=>{
-      if(state.dragging && state.dragging.id===node.id){
-        node.x = e.clientX - state.dragging.ox;
-        node.y = e.clientY - state.dragging.oy;
-        applyNodeStyles(el,node);
-        updateLayers();
+// Group words into captions
+function groupWords(words, wordsPer) {
+  const groups = [];
+  for (let i = 0; i < words.length; i += wordsPer) {
+    const slice = words.slice(i, i + wordsPer);
+    const text = slice.map(w => w.word).join(' ').replace(/\s+/g,' ').trim();
+    const start = slice[0].start;
+    const end = slice[slice.length - 1].end;
+    groups.push({ text, start, end });
+  }
+  return groups;
+}
+
+// Render overlay during playback
+function attachOverlay(groups, emEvery) {
+  cues = groups;
+  const update = () => {
+    const t = videoEl.currentTime;
+    const cur = cues.find(c => t >= c.start && t <= c.end);
+    if (!cur) { captionEl.innerHTML = ''; return; }
+    if (emEvery > 0) {
+      const words = cur.text.split(/\s+/);
+      const highlighted = words.map((w, i) => ( (i+1) % emEvery === 0 ? `<span class="em">${w}</span>` : w ));
+      captionEl.innerHTML = highlighted.join(' ');
+    } else {
+      captionEl.textContent = cur.text;
+    }
+  };
+  videoEl.removeEventListener('timeupdate', videoEl.__capHandler);
+  videoEl.__capHandler = update;
+  videoEl.addEventListener('timeupdate', update);
+}
+
+// Main: transcribe with Transformers.js Whisper tiny.en
+let asrPipeline;
+async function ensurePipeline() {
+  if (asrPipeline) return asrPipeline;
+  log('Loading speech model (tiny.en)…');
+  const { pipeline } = window.transformers;
+  asrPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
+  log('Model loaded.');
+  return asrPipeline;
+}
+
+async function generate() {
+  const f = fileEl.files?.[0];
+  if (!f) { alert('Please choose a video first.'); return; }
+
+  goBtn.disabled = true; dlBtn.disabled = true; captionEl.textContent = '';
+  logEl.textContent = 'Decoding audio…';
+  let audio;
+  try {
+    audio = await decodeToMono16k(f);
+  } catch (e) {
+    log(`\n${e.message}`);
+    goBtn.disabled = false; return;
+  }
+  log('\nTranscribing… (chunked)');
+  const asr = await ensurePipeline();
+  // Whisper returns segments with word timestamps when return_timestamps: true
+  const out = await asr(audio, {
+    chunk_length_s: 25,
+    stride_length_s: 5,
+    return_timestamps: true,
+    // language: 'en', // auto by default; set if your clips are English only
+  });
+  // Collect word-level timings
+  const allWords = [];
+  (out.segments || []).forEach(seg => {
+    (seg.words || []).forEach(w => {
+      if (typeof w.start === 'number' && typeof w.end === 'number') {
+        allWords.push({ word: w.word.trim(), start: w.start, end: w.end });
       }
     });
-    el.addEventListener('pointerup',()=>{ state.dragging=null; });
-
-    // resize handles
-    ['se','ne','sw','nw'].forEach(pos=>{
-      const h=document.createElement('div'); h.className='handle';
-      const x = pos.includes('e')?1:0, y = pos.includes('s')?1:0;
-      h.style.left = (x?node.w:0)+'px'; h.style.top=(y?node.h:0)+'px';
-      h.addEventListener('pointerdown',(e)=>{
-        e.stopPropagation(); state.resizing={id:node.id,pos, sx:node.w, sy:node.h, ax:e.clientX, ay:e.clientY, ox:node.x, oy:node.y}; h.setPointerCapture(e.pointerId);
-      });
-      h.addEventListener('pointermove',(e)=>{
-        if(!state.resizing||state.resizing.id!==node.id) return;
-        const dx=e.clientX-state.resizing.ax, dy=e.clientY-state.resizing.ay;
-        if(pos==='se'){ node.w=clamp(state.resizing.sx+dx, 10, 10000); node.h=clamp(state.resizing.sy+dy, 10, 10000); }
-        if(pos==='nw'){ const nw=clamp(state.resizing.sx-dx,10,10000); const nh=clamp(state.resizing.sy-dy,10,10000); node.x=state.resizing.ox+(node.w-nw); node.y=state.resizing.oy+(node.h-nh); node.w=nw; node.h=nh; }
-        if(pos==='ne'){ const nw=clamp(state.resizing.sx+dx,10,10000); const nh=clamp(state.resizing.sy-dy,10,10000); node.y=state.resizing.oy+(node.h-nh); node.w=nw; node.h=nh; }
-        if(pos==='sw'){ const nw=clamp(state.resizing.sx-dx,10,10000); const nh=clamp(state.resizing.sy+dy,10,10000); node.x=state.resizing.ox+(node.w-nw); node.w=nw; node.h=nh; }
-        applyNodeStyles(el,node); updateLayers();
-      });
-      h.addEventListener('pointerup',()=> state.resizing=null);
-      el.appendChild(h);
-    });
-
-    frameEl.appendChild(el);
-  }
-
-  // guides + outline
-  drawGuides();
-  updateLayers();
-}
-
-function drawGuides(){
-  const g = guidesEl; g.innerHTML='';
-  const preset = document.getElementById('devicePreset').value.split('x').map(Number);
-  const scaleW = state.frame.w / preset[0];
-  const scaleH = state.frame.h / preset[1];
-  // safe area 5%
-  const safeX = state.frame.w*0.05, safeY = state.frame.h*0.05;
-  const safe = div('guide safe'); safe.style.left=safeX+'px'; safe.style.top=safeY+'px'; safe.style.width=(state.frame.w-safeX*2)+'px'; safe.style.height=(state.frame.h-safeY*2)+'px'; g.appendChild(safe);
-  // thirds
-  for(let i=1;i<=2;i++){
-    const v=div('guide'); v.style.left=(state.frame.w*i/3)+'px'; v.style.top='0'; v.style.height='100%'; v.style.width='0'; v.style.borderLeft='1px dashed var(--guide)'; g.appendChild(v);
-    const h=div('guide'); h.style.top=(state.frame.h*i/3)+'px'; h.style.left='0'; h.style.width='100%'; h.style.height='0'; h.style.borderTop='1px dashed var(--guide)'; g.appendChild(h);
-  }
-  // outline overlay
-  const px = parseInt(document.getElementById('outlinePx').value||'0',10);
-  outlineOverlay.style.borderWidth = px+'px';
-}
-
-function div(cls){ const d=document.createElement('div'); d.className=cls; return d; }
-
-function updateLayers(){
-  layersEl.innerHTML='';
-  [...state.nodes].reverse().forEach((n,i)=>{
-    const row=document.createElement('div');
-    row.className='flex items-center gap-2 text-sm hover:bg-white/5 rounded px-2 py-1 cursor-pointer';
-    row.innerHTML=`<span class="text-slate-400">${n.type}</span> <span class="text-slate-300">${n.w}×${n.h}</span>`;
-    row.addEventListener('click',()=>{ state.sel=n.id; render(); updateInspector(); });
-    layersEl.appendChild(row);
   });
-}
 
-function updateInspector(){
-  const n = state.nodes.find(x=>x.id===state.sel);
-  if(!n){ selectionPanel.textContent='No selection'; return; }
-  selectionPanel.innerHTML = `
-    <div class="grid grid-cols-2 gap-2">
-      <label class="text-xs text-slate-400">X<input id="i-x" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.x)}"/></label>
-      <label class="text-xs text-slate-400">Y<input id="i-y" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.y)}"/></label>
-      <label class="text-xs text-slate-400">W<input id="i-w" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.w)}"/></label>
-      <label class="text-xs text-slate-400">H<input id="i-h" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.h)}"/></label>
-      <label class="text-xs text-slate-400">Radius<input id="i-r" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${n.r||0}"/></label>
-      <label class="text-xs text-slate-400">Stroke<input id="i-stk" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${n.strokeSize||0}"/></label>
-      <label class="text-xs text-slate-400">Fill<input id="i-fill" class="glass w-full px-2 py-1 rounded border border-white/10" type="color" value="${n.fill||'#5b8cff'}"/></label>
-      <label class="text-xs text-slate-400">Stroke Color<input id="i-str" class="glass w-full px-2 py-1 rounded border border-white/10" type="color" value="${n.stroke||'#141824'}"/></label>
-      <label class="text-xs text-slate-400">Opacity<input id="i-op" class="glass w-full px-2 py-1 rounded border border-white/10" type="range" min="0" max="100" value="${n.opacity??100}"/></label>
-      ${n.type==='text'?`<label class="text-xs text-slate-400 col-span-2">Text<input id="i-text" class="glass w-full px-2 py-1 rounded border border-white/10" value="${n.text||''}"/></label>`:''}
-    </div>`;
-  // bind
-  ['i-x','i-y','i-w','i-h','i-r','i-stk','i-fill','i-str','i-op','i-text'].forEach(id=>{
-    const el=document.getElementById(id); if(!el) return;
-    el.addEventListener('input',()=>{
-      if(id==='i-x') n.x=parseInt(el.value,10)||0; if(id==='i-y') n.y=parseInt(el.value,10)||0;
-      if(id==='i-w') n.w=parseInt(el.value,10)||0; if(id==='i-h') n.h=parseInt(el.value,10)||0;
-      if(id==='i-r') n.r=parseInt(el.value,10)||0; if(id==='i-stk') n.strokeSize=parseInt(el.value,10)||0;
-      if(id==='i-fill') n.fill=el.value; if(id==='i-str') n.stroke=el.value; if(id==='i-op') n.opacity=parseInt(el.value,10)||0;
-      if(id==='i-text') n.text=el.value;
-      render();
-    });
-  });
-}
-
-// ====== Asset Uploads ======
-const uploadAssets = document.getElementById('uploadAssets');
-uploadAssets.addEventListener('change', async (e)=>{
-  const files=[...e.target.files];
-  for(const f of files){
-    const url = await readAsDataURL(f);
-    const img = await loadImg(url);
-    const a={id:gid(), name:f.name, dataURL:url, w:img.width, h:img.height};
-    state.assets.push(a); addAssetThumb(a);
+  if (!allWords.length) {
+    log('\nNo word timestamps returned. Try a clearer clip.');
+    goBtn.disabled = false; return;
   }
-  toast('Assets added');
-});
-function addAssetThumb(a){
-  const item=document.createElement('div'); item.className='relative group';
-  item.innerHTML=`<img src="${a.dataURL}" class="w-full h-24 object-cover rounded-lg border border-white/10" draggable="true" />
-  <div class='absolute bottom-1 left-1 text![10px] bg-black/50 px-1 rounded'>${a.w}×${a.h}</div>`;
-  item.addEventListener('dragstart',(ev)=>{ ev.dataTransfer.setData('text/plain', a.id); });
-  assetsEl.appendChild(item);
+
+  const wordsPer = parseInt(wordsPerEl.value, 10);
+  const groups = groupWords(allWords, wordsPer);
+  attachOverlay(groups, parseInt(emEveryEl.value, 10));
+
+  // Build and enable VTT download
+  const vtt = buildVTT(groups);
+  const blob = new Blob([vtt], { type: 'text/vtt' });
+  const url = URL.createObjectURL(blob);
+  dlBtn.disabled = false;
+  dlBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.href = url; a.download = (f.name.replace(/\.[^.]+$/, '') || 'captions') + '.vtt';
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  log('\n✅ Done! Subtitles generated. Use Download .vtt or record your screen with overlay.');
+  goBtn.disabled = false;
 }
 
-frameEl.addEventListener('dragover',e=>{ e.preventDefault(); });
-frameEl.addEventListener('drop',e=>{
-  e.preventDefault(); const id=e.dataTransfer.getData('text/plain'); const a=state.assets.find(x=>x.id===id); if(!a) return;
-  const rect=frameEl.getBoundingClientRect();
-  const n={ id:gid(), type:'image', x:e.clientX-rect.left-120, y:e.clientY-rect.top-80, w:Math.min(240,a.w), h:Math.min(160,a.h), r:12, src:a.dataURL, stroke:'#141824', strokeSize:0, opacity:100, shadow:false };
-  state.nodes.push(n); state.sel=n.id; render(); updateInspector();
-});
-
-// ====== Toolbar Bindings ======
-document.getElementById('newFrame').addEventListener('click',()=>{
-  state.frame.x=160; state.frame.y=120; state.frame.w=1200; state.frame.h=700; render();
-});
-['fillColor','strokeColor','strokeSize','cornerRadius','opacity','shadow'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',()=>{
-    const n = state.nodes.find(x=>x.id===state.sel); if(!n) return;
-    if(id==='fillColor') n.fill=document.getElementById('fillColor').value;
-    if(id==='strokeColor') n.stroke=document.getElementById('strokeColor').value;
-    if(id==='strokeSize') n.strokeSize=parseInt(document.getElementById('strokeSize').value,10);
-    if(id==='cornerRadius') n.r=parseInt(document.getElementById('cornerRadius').value,10);
-    if(id==='opacity') n.opacity=parseInt(document.getElementById('opacity').value,10);
-    if(id==='shadow') n.shadow=document.getElementById('shadow').checked;
-    render(); updateInspector();
+document.getElementById('go').addEventListener('click', () => {
+  generate().catch(err => {
+    console.error(err);
+    log(`\nError: ${err.message || err}`);
+    goBtn.disabled = false;
   });
 });
-
-// ====== Keyboard / Command Bar ======
-const kbar = document.getElementById('kbar');
-window.addEventListener('keydown',(e)=>{
-  if(e.key==='F2'){ e.preventDefault(); kbar.classList.toggle('hidden'); document.getElementById('prompt').focus(); }
-  if(e.key==='Delete' || e.key==='Backspace'){ if(state.sel){ state.nodes=state.nodes.filter(n=>n.id!==state.sel); state.sel=null; render(); updateInspector(); }}
-});
-
-// Command bar form
-const kbarForm=document.getElementById('kbar-form');
-kbarForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const prompt = document.getElementById('prompt').value.trim();
-  const fileEl = document.getElementById('kbar-file');
-  let imageData=null;
-  if(fileEl.files && fileEl.files[0]){ imageData = await readAsDataURL(fileEl.files[0]); }
-  toast('Calling Maverick to build your layout...');
-  try{
-    const res = await fetch('/api/api', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, imageData, assets: state.assets.map(a=>({name:a.name, width:a.w, height:a.h})) }) });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error||'Groq error');
-    // Expect data.nodes: array of node specs
-    if(Array.isArray(data.nodes)){
-      for(const nn of data.nodes){
-        const node={ id:gid(), type: nn.type||'rect', x:nn.x||20, y:nn.y||20, w:nn.w||160, h:nn.h||90, r:nn.r||12, fill:nn.fill||'#5b8cff', stroke:nn.stroke||'#141824', strokeSize:nn.strokeSize||0, opacity:nn.opacity??100, shadow:!!nn.shadow };
-        if(node.type==='text') node.text = nn.text||'Text';
-        if(node.type==='image'){
-          const idx = typeof nn.srcIndex==='number' ? nn.srcIndex : 0;
-          node.src = state.assets[idx]?.dataURL || state.assets[0]?.dataURL;
-        }
-        state.nodes.push(node);
-      }
-      render(); updateInspector(); toast('Layout generated!');
-    } else { toast('No nodes from AI. Try a different prompt.'); }
-  }catch(err){ console.error(err); toast('AI error: '+err.message); }
-});
-
-// Attach image button
-const attachBtn=document.getElementById('attachBtn');
-attachBtn.addEventListener('click',()=> document.getElementById('kbar-file').click());
-
-// ====== Camera Mode & Outlines ======
-const cameraBtn=document.getElementById('cameraMode');
-cameraBtn.addEventListener('click',()=>{ state.cameraMode=!state.cameraMode; cameraBtn.textContent= state.cameraMode ? 'Exit Camera' : 'Camera Mode'; document.getElementById('canvasWrap').style.background = state.cameraMode? '#0b0e14': 'radial-gradient(ellipse at top, #0f1426 0%, #0b0e14 35%)'; render(); });
-['devicePreset','pixelDensity','outlinePx','bgToggle'].forEach(id=> document.getElementById(id).addEventListener('input',()=>{ render(); }));
-
-// ====== Export (PNG, with/without background, outline baked) ======
-document.getElementById('exportBtn').addEventListener('click', async ()=>{
-  const [tw,th] = document.getElementById('devicePreset').value.split('x').map(Number);
-  const density = parseInt(document.getElementById('pixelDensity').value,10);
-  const W = tw * density, H = th * density;
-  const includeBg = document.getElementById('bgToggle').checked;
-  const outlinePx = parseInt(document.getElementById('outlinePx').value||'0',10) * density;
-
-  const can = document.createElement('canvas'); can.width=W; can.height=H; const ctx=can.getContext('2d');
-  if(includeBg){ ctx.fillStyle = state.frame.bg; ctx.fillRect(0,0,W,H); }
-
-  // scale nodes from frame to export size
-  const sx = W / state.frame.w; const sy = H / state.frame.h;
-
-  // draw nodes
-  for(const n of state.nodes){
-    const x=n.x*sx, y=n.y*sy, w=n.w*sx, h=n.h*sy, r=(n.r||0)*((sx+sy)/2);
-    ctx.globalAlpha = (n.opacity??100)/100;
-    if(n.type==='rect'){
-      roundRect(ctx, x, y, w, h, r);
-      if(n.fill){ ctx.fillStyle=n.fill; ctx.fill(); }
-      if((n.strokeSize||0)>0){ ctx.lineWidth=(n.strokeSize||0)*((sx+sy)/2); ctx.strokeStyle=n.stroke||'transparent'; ctx.stroke(); }
-      if(n.shadow){ ctx.save(); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=30*((sx+sy)/2); ctx.shadowOffsetY=10*((sx+sy)/2); roundRect(ctx, x, y, w, h, r); ctx.fillStyle='rgba(0,0,0,.001)'; ctx.fill(); ctx.restore(); }
-    } else if(n.type==='image'){
-      const img = await loadImg(n.src);
-      ctx.save();
-      roundRect(ctx, x, y, w, h, r); ctx.clip();
-      ctx.drawImage(img, 0,0, img.width, img.height, x, y, w, h);
-      ctx.restore();
-      if((n.strokeSize||0)>0){ ctx.lineWidth=(n.strokeSize||0)*((sx+sy)/2); ctx.strokeStyle=n.stroke||'transparent'; roundRect(ctx, x, y, w, h, r); ctx.stroke(); }
-    } else if(n.type==='text'){
-      ctx.save();
-      ctx.fillStyle = n.fill||'#e9ecf1';
-      const fs = 24*((sx+sy)/2);
-      ctx.font = n.font || `600 ${fs}px Inter`;
-      ctx.textAlign = n.align || 'center';
-      ctx.textBaseline='middle';
-      ctx.fillText(n.text||'Text', x+w/2, y+h/2);
-      ctx.restore();
-    }
-  }
-
-  // outline stroke on export
-  if(outlinePx>0){
-    ctx.save(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = outlinePx; ctx.strokeRect(outlinePx/2, outlinePx/2, W-outlinePx, H-outlinePx); ctx.restore();
-  }
-
-  const url = can.toDataURL('image/png');
-  downloadURL(url, `minifigma-${tw}x${th}-${density}x.png`);
-});
-
-function roundRect(ctx, x, y, w, h, r){
-  const rr = Math.min(r, w/2, h/2);
-  ctx.beginPath();
-  ctx.moveTo(x+rr, y);
-  ctx.lineTo(x+w-rr, y);
-  ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
-  ctx.lineTo(x+w, y+h-rr);
-  ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
-  ctx.lineTo(x+rr, y+h);
-  ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
-  ctx.lineTo(x, y+rr);
-  ctx.quadraticCurveTo(x, y, x+rr, y);
-  ctx.closePath();
-}
-
-// ====== Utils ======
-function readAsDataURL(file){ return new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); }); }
-function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.crossOrigin='anonymous'; i.src=src; }); }
-function downloadURL(dataUrl, filename){ const a=document.createElement('a'); a.href=dataUrl; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); }
-
-// add some starter nodes
-state.nodes.push({ id:gid(), type:'rect', x:60, y:60, w:300, h:160, r:18, fill:'#1a2034', stroke:'#2b3350', strokeSize:2, opacity:100, shadow:true });
-state.nodes.push({ id:gid(), type:'text', x:80, y:88, w:260, h:40, r:0, fill:'#e9ecf1', stroke:'#141824', strokeSize:0, opacity:100, text:'Hello Maverick', font:'700 28px Inter', align:'center' });
-render();
 </script>
 </body>
 </html>
