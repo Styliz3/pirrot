@@ -4,100 +4,131 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Olida — AI Assistant</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #fff; --fg: #111; --muted: #666;
-      --accent: #111; --outline: 1px solid #ddd;
+      --bg: #0d0d0d;
+      --fg: #f5f5f5;
+      --muted: #888;
+      --accent: #1db954;
+      --outline: 1px solid #333;
       --radius: 12px;
     }
-    [data-theme="dark"] {
-      --bg: #111; --fg: #eee; --muted: #aaa;
-      --accent: #eee; --outline: 1px solid #333;
+    [data-theme="light"] {
+      --bg: #fff; --fg: #111; --muted: #555;
+      --accent: #0070f3; --outline: 1px solid #ddd;
     }
     body {
       margin:0; font-family: Inter, sans-serif;
       display:grid; grid-template-columns: 260px 1fr;
       height:100vh; background: var(--bg); color: var(--fg);
+      transition: background .4s, color .4s;
     }
     /* Sidebar */
     .sidebar {
-      border-right: var(--outline);
-      display:flex; flex-direction:column;
-      background: var(--bg); padding:12px;
+      border-right: var(--outline); display:flex; flex-direction:column;
+      padding:14px; background: var(--bg);
     }
-    .sidebar h2 { font-size:16px; margin:8px 0; }
-    .chat-list { flex:1; overflow-y:auto; }
+    .logo { font-weight:700; font-size:18px; margin-bottom:12px; }
+    .chat-list { flex:1; overflow-y:auto; margin-top:12px; }
     .chat-item {
       padding:10px; border-radius: var(--radius);
-      cursor:pointer; margin-bottom:6px;
+      cursor:pointer; margin-bottom:6px; transition: background .2s;
     }
-    .chat-item.active { background: var(--accent); color: var(--bg); }
-    .btn { padding:8px 12px; border: var(--outline); border-radius: var(--radius); background: var(--bg); cursor:pointer; }
-    .btn:hover { opacity:0.8; }
+    .chat-item:hover { background: rgba(255,255,255,.06); }
+    .chat-item.active { background: var(--accent); color: #fff; }
+    .btn {
+      padding:10px; border-radius: var(--radius); border: var(--outline);
+      background:transparent; color:var(--fg); cursor:pointer;
+      transition: all .2s;
+    }
+    .btn:hover { background: rgba(255,255,255,.1); }
     /* Main */
     .main { display:flex; flex-direction:column; height:100vh; }
     .topbar {
-      padding:12px; border-bottom: var(--outline);
+      padding:14px; border-bottom: var(--outline);
       display:flex; justify-content:space-between; align-items:center;
     }
     .chat {
       flex:1; overflow-y:auto; padding:20px;
       display:flex; flex-direction:column; gap:14px;
     }
-    .msg { max-width:70%; padding:12px 14px; border-radius: var(--radius); line-height:1.5; white-space:pre-wrap; }
-    .msg.user { align-self:flex-end; background:#eaeaea; }
-    [data-theme="dark"] .msg.user { background:#333; }
-    .msg.ai { align-self:flex-start; background:#fdfdfd; border: var(--outline); }
-    [data-theme="dark"] .msg.ai { background:#1a1a1a; }
+    .msg {
+      max-width:70%; padding:14px 16px; border-radius: var(--radius);
+      line-height:1.5; white-space:pre-wrap; animation: fadeIn .3s ease;
+    }
+    .msg.user { align-self:flex-end; background: #1a1a1a; }
+    [data-theme="light"] .msg.user { background: #eaeaea; }
+    .msg.ai { align-self:flex-start; background:#181818; border: var(--outline); }
+    [data-theme="light"] .msg.ai { background:#fdfdfd; }
     .input-bar {
-      display:flex; padding:12px; border-top: var(--outline); gap:10px;
+      display:flex; padding:14px; border-top: var(--outline); gap:10px;
     }
     textarea {
-      flex:1; padding:12px; border-radius: var(--radius); border: var(--outline);
+      flex:1; padding:14px; border-radius: var(--radius); border: var(--outline);
       resize:none; font:inherit; background:var(--bg); color:var(--fg);
     }
-    button { padding:12px 18px; border-radius: var(--radius); border: var(--outline); background: var(--bg); color: var(--fg); cursor:pointer; }
+    button { padding:14px 18px; border-radius: var(--radius); border: var(--outline); background: var(--accent); color:#fff; cursor:pointer; font-weight:600; }
+    button:hover { opacity:.9; }
+    /* Welcome state */
+    .welcome {
+      flex:1; display:grid; place-items:center; text-align:center; padding:40px;
+    }
+    .welcome h1 { font-size:24px; margin-bottom:10px; }
+    .welcome p { color:var(--muted); margin-bottom:20px; }
+    .fade-in { animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
   </style>
 </head>
-<body data-theme="light">
+<body>
   <div class="sidebar">
-    <h2>Olida</h2>
+    <div class="logo">Olida</div>
     <button class="btn" id="newChat">+ New Chat</button>
     <div class="chat-list" id="chatList"></div>
     <button class="btn" id="themeToggle">Toggle Theme</button>
   </div>
   <div class="main">
     <div class="topbar">
-      <div id="chatTitle">New Chat</div>
+      <div id="chatTitle">Welcome</div>
     </div>
-    <div class="chat" id="chat"></div>
-    <div class="input-bar">
+    <div id="chatContainer" class="chat"></div>
+    <div id="welcome" class="welcome">
+      <div>
+        <h1>How can I assist you today?</h1>
+        <p>Start a new conversation with Olida.</p>
+        <div class="input-bar" style="max-width:600px;margin:auto;">
+          <textarea id="inputWelcome" rows="1" placeholder="Ask anything..."></textarea>
+          <button id="sendWelcome">Send</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-bar" id="chatInput" style="display:none;">
       <textarea id="input" rows="1" placeholder="Type a message..."></textarea>
       <button id="send">Send</button>
     </div>
   </div>
 
   <script>
-    const chat = document.getElementById("chat");
+    const chat = document.getElementById("chatContainer");
     const input = document.getElementById("input");
     const sendBtn = document.getElementById("send");
     const chatList = document.getElementById("chatList");
     const chatTitle = document.getElementById("chatTitle");
+    const welcome = document.getElementById("welcome");
+    const chatInput = document.getElementById("chatInput");
 
     let chats = JSON.parse(localStorage.getItem("olida_chats")||"[]");
     let activeId = null;
 
     function save(){ localStorage.setItem("olida_chats", JSON.stringify(chats)); }
-
-    function newChat(){
+    function newChat(firstMsg){
       const id = Date.now().toString();
       chats.unshift({id, title:"New Chat", messages:[
-        { role:"system", content:"You are Olida, a professional AI assistant." }
+        { role:"system", content:"You are Olida, a professional AI assistant with memory." }
       ]});
-      activeId = id; save(); renderChats(); renderActive();
+      activeId = id; save(); renderChats();
+      if(firstMsg){ send(firstMsg); }
+      else { renderActive(); }
     }
 
     function renderChats(){
@@ -115,23 +146,20 @@
       const c = chats.find(x=>x.id===activeId); if(!c) return;
       chat.innerHTML="";
       chatTitle.textContent=c.title;
-      c.messages.filter(m=>m.role!=="system").forEach(m=>{
-        addMessage(m.role==="assistant"?"ai":"user", m.content);
-      });
+      welcome.style.display="none"; chatInput.style.display="flex";
+      c.messages.filter(m=>m.role!=="system").forEach(m=> addMessage(m.role==="assistant"?"ai":"user", m.content));
     }
 
     function addMessage(role, content){
       const div = document.createElement("div");
-      div.className="msg "+role; div.textContent=content;
+      div.className="msg "+role+" fade-in"; div.textContent=content;
       chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
     }
 
-    async function send(){
-      const text = input.value.trim();
-      if (!text) return;
-      input.value="";
+    async function send(text){
       const c = chats.find(x=>x.id===activeId); if(!c) return;
-
+      if(!text){ text=input.value.trim(); input.value=""; }
+      if(!text) return;
       c.messages.push({role:"user", content:text});
       addMessage("user", text); save();
 
@@ -141,25 +169,44 @@
         body: JSON.stringify({ messages:c.messages })
       });
       const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || "(no reply)";
+      const reply = data.choices?.[0]?.message?.content || "⚠️ Sorry, no reply.";
       c.messages.push({role:"assistant", content:reply});
-      addMessage("ai", reply); save();
-
-      // update chat title from first user msg
-      if(c.title==="New Chat"){ c.title = text.slice(0,20); renderChats(); save(); }
+      typeMessage(reply); save();
+      if(c.title==="New Chat"){ c.title=text.slice(0,30); renderChats(); save(); }
     }
 
-    sendBtn.onclick=send;
+    // streaming typing effect
+    function typeMessage(text){
+      const div = document.createElement("div");
+      div.className="msg ai fade-in"; chat.appendChild(div);
+      let i=0;
+      const timer=setInterval(()=>{
+        div.textContent=text.slice(0,++i);
+        chat.scrollTop=chat.scrollHeight;
+        if(i>=text.length) clearInterval(timer);
+      }, 15);
+    }
+
+    sendBtn.onclick=()=>send();
     input.addEventListener("keydown", e=>{
       if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); }
     });
 
-    document.getElementById("newChat").onclick=newChat;
+    document.getElementById("sendWelcome").onclick=()=>{
+      const val=document.getElementById("inputWelcome").value.trim();
+      if(val) { newChat(val); }
+    };
+
+    document.getElementById("newChat").onclick=()=>newChat();
     document.getElementById("themeToggle").onclick=()=>{
       document.body.dataset.theme = document.body.dataset.theme==="light"?"dark":"light";
     };
 
-    if(chats.length===0){ newChat(); } else { activeId=chats[0].id; renderChats(); renderActive(); }
+    // auto-theme by time
+    const hour=new Date().getHours();
+    if(hour>=19||hour<7){ document.body.dataset.theme="dark"; } else { document.body.dataset.theme="light"; }
+
+    if(chats.length>0){ activeId=chats[0].id; renderChats(); renderActive(); }
   </script>
 </body>
 </html>
