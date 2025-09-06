@@ -1,212 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Olida — AI Assistant</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>EasyRun! – Free API Servers</title>
   <style>
-    :root {
-      --bg: #0d0d0d;
-      --fg: #f5f5f5;
-      --muted: #888;
-      --accent: #1db954;
-      --outline: 1px solid #333;
-      --radius: 12px;
-    }
-    [data-theme="light"] {
-      --bg: #fff; --fg: #111; --muted: #555;
-      --accent: #0070f3; --outline: 1px solid #ddd;
-    }
-    body {
-      margin:0; font-family: Inter, sans-serif;
-      display:grid; grid-template-columns: 260px 1fr;
-      height:100vh; background: var(--bg); color: var(--fg);
-      transition: background .4s, color .4s;
-    }
-    /* Sidebar */
-    .sidebar {
-      border-right: var(--outline); display:flex; flex-direction:column;
-      padding:14px; background: var(--bg);
-    }
-    .logo { font-weight:700; font-size:18px; margin-bottom:12px; }
-    .chat-list { flex:1; overflow-y:auto; margin-top:12px; }
-    .chat-item {
-      padding:10px; border-radius: var(--radius);
-      cursor:pointer; margin-bottom:6px; transition: background .2s;
-    }
-    .chat-item:hover { background: rgba(255,255,255,.06); }
-    .chat-item.active { background: var(--accent); color: #fff; }
-    .btn {
-      padding:10px; border-radius: var(--radius); border: var(--outline);
-      background:transparent; color:var(--fg); cursor:pointer;
-      transition: all .2s;
-    }
-    .btn:hover { background: rgba(255,255,255,.1); }
-    /* Main */
-    .main { display:flex; flex-direction:column; height:100vh; }
-    .topbar {
-      padding:14px; border-bottom: var(--outline);
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    .chat {
-      flex:1; overflow-y:auto; padding:20px;
-      display:flex; flex-direction:column; gap:14px;
-    }
-    .msg {
-      max-width:70%; padding:14px 16px; border-radius: var(--radius);
-      line-height:1.5; white-space:pre-wrap; animation: fadeIn .3s ease;
-    }
-    .msg.user { align-self:flex-end; background: #1a1a1a; }
-    [data-theme="light"] .msg.user { background: #eaeaea; }
-    .msg.ai { align-self:flex-start; background:#181818; border: var(--outline); }
-    [data-theme="light"] .msg.ai { background:#fdfdfd; }
-    .input-bar {
-      display:flex; padding:14px; border-top: var(--outline); gap:10px;
-    }
-    textarea {
-      flex:1; padding:14px; border-radius: var(--radius); border: var(--outline);
-      resize:none; font:inherit; background:var(--bg); color:var(--fg);
-    }
-    button { padding:14px 18px; border-radius: var(--radius); border: var(--outline); background: var(--accent); color:#fff; cursor:pointer; font-weight:600; }
-    button:hover { opacity:.9; }
-    /* Welcome state */
-    .welcome {
-      flex:1; display:grid; place-items:center; text-align:center; padding:40px;
-    }
-    .welcome h1 { font-size:24px; margin-bottom:10px; }
-    .welcome p { color:var(--muted); margin-bottom:20px; }
-    .fade-in { animation: fadeIn .3s ease; }
-    @keyframes fadeIn { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; text-align: center; }
+    h1 { color: #0ff; }
+    button { margin: 10px; padding: 10px 20px; border: none; background: #0ff; color: #111; cursor: pointer; }
+    .server { border: 1px solid #333; margin: 10px auto; padding: 10px; max-width: 400px; background: #222; }
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <div class="logo">Olida</div>
-    <button class="btn" id="newChat">+ New Chat</button>
-    <div class="chat-list" id="chatList"></div>
-    <button class="btn" id="themeToggle">Toggle Theme</button>
-  </div>
-  <div class="main">
-    <div class="topbar">
-      <div id="chatTitle">Welcome</div>
-    </div>
-    <div id="chatContainer" class="chat"></div>
-    <div id="welcome" class="welcome">
-      <div>
-        <h1>How can I assist you today?</h1>
-        <p>Start a new conversation with Olida.</p>
-        <div class="input-bar" style="max-width:600px;margin:auto;">
-          <textarea id="inputWelcome" rows="1" placeholder="Ask anything..."></textarea>
-          <button id="sendWelcome">Send</button>
-        </div>
-      </div>
-    </div>
-    <div class="input-bar" id="chatInput" style="display:none;">
-      <textarea id="input" rows="1" placeholder="Type a message..."></textarea>
-      <button id="send">Send</button>
-    </div>
-  </div>
+  <h1>🚀 EasyRun! Free Servers</h1>
+  <button onclick="createServer()">Create Server</button>
+  <div id="servers"></div>
 
   <script>
-    const chat = document.getElementById("chatContainer");
-    const input = document.getElementById("input");
-    const sendBtn = document.getElementById("send");
-    const chatList = document.getElementById("chatList");
-    const chatTitle = document.getElementById("chatTitle");
-    const welcome = document.getElementById("welcome");
-    const chatInput = document.getElementById("chatInput");
-
-    let chats = JSON.parse(localStorage.getItem("olida_chats")||"[]");
-    let activeId = null;
-
-    function save(){ localStorage.setItem("olida_chats", JSON.stringify(chats)); }
-    function newChat(firstMsg){
-      const id = Date.now().toString();
-      chats.unshift({id, title:"New Chat", messages:[
-        { role:"system", content:"You are Olida, a professional AI assistant with memory." }
-      ]});
-      activeId = id; save(); renderChats();
-      if(firstMsg){ send(firstMsg); }
-      else { renderActive(); }
-    }
-
-    function renderChats(){
-      chatList.innerHTML="";
-      chats.forEach(c=>{
-        const div = document.createElement("div");
-        div.className="chat-item"+(c.id===activeId?" active":"");
-        div.textContent=c.title;
-        div.onclick=()=>{ activeId=c.id; renderChats(); renderActive(); save(); };
-        chatList.appendChild(div);
-      });
-    }
-
-    function renderActive(){
-      const c = chats.find(x=>x.id===activeId); if(!c) return;
-      chat.innerHTML="";
-      chatTitle.textContent=c.title;
-      welcome.style.display="none"; chatInput.style.display="flex";
-      c.messages.filter(m=>m.role!=="system").forEach(m=> addMessage(m.role==="assistant"?"ai":"user", m.content));
-    }
-
-    function addMessage(role, content){
-      const div = document.createElement("div");
-      div.className="msg "+role+" fade-in"; div.textContent=content;
-      chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
-    }
-
-    async function send(text){
-      const c = chats.find(x=>x.id===activeId); if(!c) return;
-      if(!text){ text=input.value.trim(); input.value=""; }
-      if(!text) return;
-      c.messages.push({role:"user", content:text});
-      addMessage("user", text); save();
-
-      const res = await fetch("/api/chat", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ messages:c.messages })
-      });
+    async function loadServers() {
+      const res = await fetch('/api/api.js');
       const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || "⚠️ Sorry, no reply.";
-      c.messages.push({role:"assistant", content:reply});
-      typeMessage(reply); save();
-      if(c.title==="New Chat"){ c.title=text.slice(0,30); renderChats(); save(); }
+      const container = document.getElementById('servers');
+      container.innerHTML = "";
+      data.forEach(s => {
+        const div = document.createElement("div");
+        div.className = "server";
+        div.innerHTML = `
+          <h3>${s.name} (${s.id})</h3>
+          <p>Status: ${s.running ? "🟢 Running" : "🔴 Stopped"}</p>
+          <p>Created: ${new Date(s.created).toLocaleTimeString()}</p>
+          <a href="/api/api.js?id=${s.id}&route=hello" target="_blank">Test /hello</a><br>
+          <button onclick="deleteServer('${s.id}')">Delete</button>
+        `;
+        container.appendChild(div);
+      });
     }
 
-    // streaming typing effect
-    function typeMessage(text){
-      const div = document.createElement("div");
-      div.className="msg ai fade-in"; chat.appendChild(div);
-      let i=0;
-      const timer=setInterval(()=>{
-        div.textContent=text.slice(0,++i);
-        chat.scrollTop=chat.scrollHeight;
-        if(i>=text.length) clearInterval(timer);
-      }, 15);
+    async function createServer() {
+      await fetch('/api/api.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: "My EasyRun Server" })
+      });
+      loadServers();
     }
 
-    sendBtn.onclick=()=>send();
-    input.addEventListener("keydown", e=>{
-      if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); }
-    });
+    async function deleteServer(id) {
+      await fetch(`/api/api.js?id=${id}`, { method: 'DELETE' });
+      loadServers();
+    }
 
-    document.getElementById("sendWelcome").onclick=()=>{
-      const val=document.getElementById("inputWelcome").value.trim();
-      if(val) { newChat(val); }
-    };
-
-    document.getElementById("newChat").onclick=()=>newChat();
-    document.getElementById("themeToggle").onclick=()=>{
-      document.body.dataset.theme = document.body.dataset.theme==="light"?"dark":"light";
-    };
-
-    // auto-theme by time
-    const hour=new Date().getHours();
-    if(hour>=19||hour<7){ document.body.dataset.theme="dark"; } else { document.body.dataset.theme="light"; }
-
-    if(chats.length>0){ activeId=chats[0].id; renderChats(); renderActive(); }
+    loadServers();
   </script>
 </body>
 </html>
