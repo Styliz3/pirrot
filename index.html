@@ -1,668 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Comblex — AI Code Workspace</title>
-<style>
-  :root{
-    --bg:#0a0a0b;
-    --panel:#111114;
-    --panel-2:#15161a;
-    --text:#f2f2f2;
-    --muted:#cfcfd6;
-    --accent:#8ab4ff;
-    --ok:#79ffa6;
-    --bad:#ff6b6b;
-    --outline:rgba(255,255,255,0.18);
-    --outline-2:rgba(255,255,255,0.10);
-    --shadow:0 20px 50px rgba(0,0,0,.45);
-    --radius:18px;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;background:var(--bg);color:var(--text);
-    font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  }
-
-  /* Centered gate */
-  .center-wrap{
-    min-height:100vh;display:grid;place-items:center;padding:24px;
-  }
-  .card{
-    width:min(880px,95vw);background:linear-gradient(180deg,var(--panel),var(--panel-2));
-    border-radius:var(--radius);border:1px solid var(--outline);box-shadow:var(--shadow);
-    padding:24px;position:relative;overflow:hidden
-  }
-  .title{font-size:1.6rem;font-weight:700;margin:0 0 2px}
-  .sub{color:var(--muted);margin:0 0 16px;font-size:.95rem}
-  .row{display:flex;gap:12px;flex-wrap:wrap}
-  .field{
-    flex:1 1 220px;background:#0c0c0e;border:1px solid var(--outline-2);
-    border-radius:12px;padding:12px 14px;color:var(--text);outline:none
-  }
-  .btn{
-    background:#0d0f15;border:1px solid var(--outline);color:var(--text);
-    padding:12px 16px;border-radius:14px;cursor:pointer;font-weight:600;
-    transition:.18s transform,.18s background
-  }
-  .btn:hover{transform:translateY(-1px);background:#121523}
-  .btn.primary{border-color:#ffffff33;background:#0f1222}
-  .hint{margin-top:8px;color:var(--muted);font-size:.9rem}
-  .msg{margin-top:10px;font-weight:600}
-  .msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
-
-  /* App layout */
-  .app{
-    height:100vh;display:grid;grid-template-columns:300px 1fr 480px;
-    gap:14px;padding:16px;opacity:0;pointer-events:none;
-  }
-  .app.show{opacity:1;pointer-events:auto;transition:opacity .35s}
-  .panel{
-    background:linear-gradient(180deg,var(--panel),var(--panel-2));
-    border:1px solid var(--outline);border-radius:var(--radius);box-shadow:var(--shadow);
-    overflow:hidden;display:flex;flex-direction:column;min-height:0;
-  }
-
-  /* Taskbar / Explorer (left) */
-  .taskbar-head{
-    padding:12px 14px;border-bottom:1px solid var(--outline-2);
-    display:flex;align-items:center;gap:10px
-  }
-  .taskbar-title{font-weight:700}
-  .explorer{
-    padding:10px;overflow:auto;flex:1
-  }
-  .explorer .item{
-    display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--outline-2);
-    border-radius:12px;margin-bottom:8px;background:#0c0d11
-  }
-  .explorer .item .name{flex:1}
-  .explorer .item .mini{opacity:.8;font-size:.85rem}
-  .explorer .empty{color:var(--muted);text-align:center;margin-top:20px}
-  .taskbar-actions{padding:10px;border-top:1px solid var(--outline-2);display:flex;gap:8px}
-
-  /* Chat (center) */
-  .chat-head{
-    padding:10px 14px;border-bottom:1px solid var(--outline-2);display:flex;gap:10px;align-items:center
-  }
-  .chip{
-    border:1px solid var(--outline);border-radius:999px;padding:6px 10px;font-size:.9rem;
-    background:#0b0d12
-  }
-  .select, .toggle{
-    background:#0d0f15;border:1px solid var(--outline-2);color:var(--text);
-    border-radius:12px;padding:8px 10px
-  }
-  .chat-scroll{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
-  .bubble{
-    border:1px solid var(--outline);border-radius:16px;padding:12px 14px;max-width:85%;
-    background:#0d0f14;white-space:pre-wrap;line-height:1.5
-  }
-  .bubble.user{margin-left:auto;background:#0e1220}
-  .bubble.assistant{margin-right:auto}
-  .code{
-    font-family:ui-monospace,Consolas,Monaco,Menlo,monospace;
-    background:#0a0c12;border:1px dashed #ffffff30;border-radius:12px;padding:10px;display:block;overflow:auto
-  }
-  .composer{
-    border-top:1px solid var(--outline-2);padding:12px;display:flex;gap:10px;align-items:flex-end
-  }
-  .area{
-    flex:1;min-height:68px;max-height:180px;resize:vertical;
-    background:#0c0d11;border:1px solid var(--outline-2);color:var(--text);border-radius:12px;padding:10px
-  }
-
-  /* Editor / Tabs (right) */
-  .editor-head{
-    padding:10px 12px;border-bottom:1px solid var(--outline-2);display:flex;gap:8px;align-items:center;flex-wrap:wrap
-  }
-  .tab{
-    border:1px solid var(--outline);background:#0b0d12;color:var(--text);
-    padding:6px 10px;border-radius:999px;cursor:pointer
-  }
-  .tab.active{background:#0f1222}
-  .editor-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
-  .editor{
-    flex:1;margin:12px;border:1px solid var(--outline);border-radius:14px;background:#0a0c12;overflow:hidden
-  }
-  .editor textarea{
-    width:100%;height:100%;border:0;outline:0;background:transparent;color:var(--text);
-    padding:12px;font-family:ui-monospace,Consolas,Monaco,Menlo,monospace;font-size:.95rem;line-height:1.5
-  }
-  .console{
-    border-top:1px dashed var(--outline-2);margin:0 12px 12px;border-radius:12px;padding:10px;background:#0b0d12
-  }
-  .row-tight{display:flex;gap:8px;align-items:center}
-
-  /* Toggle button for taskbar on mobile */
-  .topbar{
-    position:fixed;top:10px;left:50%;transform:translateX(-50%);
-    display:flex;gap:8px;z-index:10
-  }
-
-  /* Hide taskbar (optional) */
-  .hide-left .left{display:none}
-  .hide-left{grid-template-columns:1fr 480px}
-
-  @media (max-width:1100px){
-    .app{grid-template-columns:1fr}
-    .right{order:3}
-    .left{order:1}
-    .center{order:2}
-  }
-
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Business.ai — Dream it, build it.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    /* --- Styling: white theme, rounded, black outlines --- */
+    :root {
+      --bg: #fff;
+      --fg: #111;
+      --muted: #6b7280;
+      --card: #fafafa;
+      --radius: 18px;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+      --outline: 2px solid #111;
+    }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    .app { display:grid; grid-template-rows:auto 1fr; gap:24px; padding:24px; max-width:1200px; margin:0 auto; }
+    .nav { display:flex; justify-content:space-between; align-items:center; border:var(--outline); border-radius:var(--radius); padding:12px 16px; background:var(--card); box-shadow:var(--shadow); }
+    .logo { border:var(--outline); border-radius:12px; width:36px; height:36px; display:grid; place-items:center; font-weight:900; }
+    .btn { border:var(--outline); border-radius:12px; padding:8px 14px; background:#fff; font-weight:600; cursor:pointer; box-shadow:var(--shadow); }
+    .btn:hover { transform:translateY(-1px); }
+    .pill { border:var(--outline); border-radius:999px; padding:6px 10px; font-size:12px; background:#fff; }
+    .panel { border:var(--outline); border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); padding:16px; }
+    .workspace { border:var(--outline); border-radius:var(--radius); background:#fff; box-shadow:var(--shadow); padding:18px; display:grid; gap:16px; }
+    .input, textarea { width:100%; border:var(--outline); border-radius:12px; padding:12px; }
+    .card { border:var(--outline); border-radius:var(--radius); background:#fff; padding:14px; box-shadow:var(--shadow); margin-bottom:8px; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { border:var(--outline); border-radius:999px; padding:6px 10px; background:#fff; }
+  </style>
 </head>
 <body>
+  <div class="app">
+    <!-- Header -->
+    <nav class="nav">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="logo">AI</div>
+        <div>
+          <div style="font-weight:800;">Business.ai</div>
+          <div style="font-size:12px;color:var(--muted)">Dream it → Ship it</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn" id="exportBtn">Export</button>
+        <label class="btn">Import <input id="importInput" type="file" accept="application/json" style="display:none"/></label>
+        <button class="btn" id="resetBtn">Reset</button>
+        <div class="pill" id="userBadge">Guest</div>
+      </div>
+    </nav>
 
-<!-- Access Gate -->
-<div class="center-wrap" id="gate">
-  <div class="card">
-    <h1 class="title">Comblex — Secure Access</h1>
-    <p class="sub">Enter your Access Code (server secret) and your Groq API key to continue.</p>
+    <div style="display:grid; grid-template-columns:300px 1fr; gap:24px;">
+      <!-- Sidebar -->
+      <aside class="panel">
+        <h3>New Project</h3>
+        <input id="projName" class="input" placeholder="Project name"/>
+        <textarea id="projDream" rows="3" class="input" placeholder="Describe your dream business..."></textarea>
+        <button class="btn" id="startBtn">Start</button>
+        <h3>Projects</h3>
+        <div id="projectList"></div>
+      </aside>
 
-    <div class="row">
-      <input id="gate-code" type="password" class="field" placeholder="Access Code (from server)"/>
-      <input id="gate-groq" type="password" class="field" placeholder="Your Groq API Key"/>
+      <!-- Workspace -->
+      <main class="workspace">
+        <div id="emptyState">Click <b>Start</b> after describing your dream business.</div>
+        <div id="workspaceContent" style="display:none;">
+          <div style="display:flex; gap:10px;">
+            <button class="btn" id="aiNameBtn">AI: Name Ideas</button>
+            <button class="btn" id="aiIdeaBtn">AI: Business Ideas</button>
+            <button class="btn" id="aiStepsBtn">AI: Build Steps</button>
+          </div>
+          <input id="aiPrompt" class="input" placeholder="Refine your prompt"/>
+          <button class="btn" id="runAiBtn">Run AI</button>
+          <div>
+            <h4>Ideamarks</h4>
+            <input id="newMark" class="input" placeholder="Add an ideamark"/>
+            <button class="btn" id="addMarkBtn">Add</button>
+            <div id="marks" class="chips"></div>
+          </div>
+          <div>
+            <h4>AI Output</h4>
+            <div id="aiResult"></div>
+          </div>
+        </div>
+      </main>
     </div>
-
-    <div class="row">
-      <button class="btn primary" id="gate-enter">Enter</button>
-      <button class="btn" id="gate-remember">Remember credentials</button>
-    </div>
-
-    <div id="gate-msg" class="msg"></div>
-    <p class="hint">We never store your Groq key on our server. If you click “Remember”, it is saved to your browser’s local storage.</p>
   </div>
-</div>
 
-<!-- Global top toggles -->
-<div class="topbar" style="display:none" id="topbar">
-  <button class="btn" id="btn-toggle-left">Toggle Explorer</button>
-</div>
+  <script>
+    const DB_KEY = "business.ai/v1";
+    const id = () => Math.random().toString(36).slice(2,9);
 
-<!-- App -->
-<div class="app hide-left" id="app">
-  <!-- Left: Taskbar / Explorer -->
-  <section class="panel left">
-    <div class="taskbar-head">
-      <span class="taskbar-title">Code Explorer</span>
-      <span class="chip" id="project-name">project.lua</span>
-    </div>
-    <div class="explorer" id="explorer"></div>
-    <div class="taskbar-actions">
-      <button class="btn" id="btn-new-file">New File</button>
-      <button class="btn" id="btn-new-folder">New Folder</button>
-      <button class="btn" id="btn-delete">Delete</button>
-    </div>
-  </section>
+    let state = JSON.parse(localStorage.getItem(DB_KEY) || '{"projects":[],"active":""}');
 
-  <!-- Center: Chat -->
-  <section class="panel center">
-    <div class="chat-head">
-      <span class="chip">Comblex</span>
-      <select class="select" id="mode">
-        <option value="single">One Model Generating</option>
-        <option value="multi">Multi Generating (3→merge)</option>
-      </select>
-      <select class="select" id="model">
-        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-        <option value="meta-llama/llama-4-maverick-17b-128k">Llama 4 Maverick 17B 128k</option>
-        <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
-      </select>
-      <label class="row-tight" style="margin-left:auto;">
-        <input id="auto-check" type="checkbox" style="accent-color:#fff;margin-right:8px"/>
-        Auto Check code
-      </label>
-    </div>
+    function save(){ localStorage.setItem(DB_KEY, JSON.stringify(state)); }
+    function currentProject(){ return state.projects.find(p => p.id === state.active); }
 
-    <div id="chat" class="chat-scroll"></div>
-
-    <div class="composer">
-      <textarea id="prompt" class="area" placeholder="Describe the Roblox/Lua feature, ask for edits, or paste code..."></textarea>
-      <button class="btn primary" id="send">Send</button>
-    </div>
-  </section>
-
-  <!-- Right: Editor -->
-  <section class="panel right">
-    <div class="editor-head" id="tabs"></div>
-    <div class="editor-wrap">
-      <div class="editor"><textarea id="editor"></textarea></div>
-      <div class="console" id="console">Console ready.</div>
-    </div>
-    <div class="taskbar-actions">
-      <button class="btn" id="btn-save">Save</button>
-      <button class="btn" id="btn-run">Simulate Run</button>
-      <button class="btn" id="btn-format">Format (Lua-ish)</button>
-      <button class="btn" id="btn-download">Download Project</button>
-    </div>
-  </section>
-</div>
-
-<script>
-/** ========= Storage & Project State ========= **/
-const store = {
-  key: null,           // Groq key
-  messages: [],        // Chat memory
-  project: {           // Simple in-memory VFS
-    "main.lua": "-- New Lua script\nprint('Hello from Comblex!')\n",
-  },
-  open: "main.lua",
-};
-const LS_KEY = "comblex_state_v1";
-const credLS = "comblex_creds_v1";
-
-function saveState(){
-  localStorage.setItem(LS_KEY, JSON.stringify({
-    messages: store.messages,
-    project: store.project,
-    open: store.open,
-  }));
-}
-function loadState(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return;
-    const obj = JSON.parse(raw);
-    if(obj.messages) store.messages = obj.messages;
-    if(obj.project) store.project = obj.project;
-    if(obj.open && store.project[obj.open]!==undefined) store.open = obj.open;
-  }catch{}
-}
-function rememberCreds(){
-  localStorage.setItem(credLS, JSON.stringify({
-    key: document.getElementById('gate-groq').value.trim()
-  }));
-}
-function loadCreds(){
-  try{
-    const raw = localStorage.getItem(credLS);
-    if(!raw) return;
-    const {key} = JSON.parse(raw);
-    if(key){ document.getElementById('gate-groq').value = key; }
-  }catch{}
-}
-
-/** ========= UI Helpers ========= **/
-const el = s=>document.querySelector(s);
-const chatEl = el('#chat');
-function bubble(role, content){
-  const div = document.createElement('div');
-  div.className = 'bubble ' + (role==='user'?'user':'assistant');
-  div.innerHTML = content.replace(/```(.*?)```/gs, (m, inner)=>{
-    // keep code blocks visually distinct
-    return `<pre class="code">${inner.replace(/</g,'&lt;')}</pre>`;
-  });
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-function setConsole(msg){
-  el('#console').textContent = msg;
-}
-function refreshExplorer(){
-  const exp = el('#explorer');
-  exp.innerHTML = '';
-  const files = Object.keys(store.project).sort();
-  if(!files.length){
-    exp.innerHTML = `<div class="empty">No files. Create one!</div>`;
-    return;
-  }
-  files.forEach(name=>{
-    const item = document.createElement('div');
-    item.className = 'item';
-    item.innerHTML = `<span class="name">${name}</span><span class="mini">${store.project[name].length} ch</span>`;
-    item.onclick = ()=>openFile(name);
-    exp.appendChild(item);
-  });
-}
-function refreshTabs(){
-  const tabs = el('#tabs');
-  tabs.innerHTML='';
-  const files = Object.keys(store.project).sort();
-  files.forEach(name=>{
-    const b = document.createElement('button');
-    b.className='tab' + (name===store.open?' active':'');
-    b.textContent=name;
-    b.onclick=()=>openFile(name);
-    tabs.appendChild(b);
-  });
-}
-function openFile(name){
-  if(store.project[name]===undefined) return;
-  store.open = name;
-  el('#editor').value = store.project[name];
-  refreshTabs(); saveState();
-}
-
-/** ========= Access Gate ========= **/
-async function tryEnter(){
-  const code = el('#gate-code').value.trim();
-  const key  = el('#gate-groq').value.trim();
-  const msg  = el('#gate-msg');
-  msg.textContent = 'Checking…'; msg.className='msg';
-
-  try{
-    const r = await fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
-    const data = await r.json().catch(()=>({}));
-    if(!r.ok || !data.ok){ msg.textContent = data.message || 'Invalid code'; msg.className='msg bad'; return; }
-    if(!key){ msg.textContent='Groq key required'; msg.className='msg bad'; return; }
-
-    store.key = key;
-    msg.textContent='Access granted'; msg.className='msg ok';
-
-    setTimeout(()=>{
-      el('#gate').style.display='none';
-      el('#topbar').style.display='flex';
-      el('#app').classList.add('show');
-      loadState();
-      initWorkspaceUI();
-    }, 350);
-  }catch(e){
-    msg.textContent='Server error: ' + e.message; msg.className='msg bad';
-  }
-}
-
-/** ========= Chat & Groq Calls ========= **/
-const MODELS = [
-  "llama-3.3-70b-versatile",
-  "meta-llama/llama-4-maverick-17b-128k",
-  "meta-llama/llama-4-scout-17b-16e-instruct"
-];
-
-async function groqChat(model, messages){
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':'Bearer '+store.key
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.4,
-      messages
-    })
-  });
-  if(!res.ok){
-    const t = await res.text().catch(()=>res.statusText);
-    throw new Error('Groq API error: ' + t);
-  }
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || '';
-}
-
-/** Prompt builders **/
-function systemPrimer(){
-  return {
-    role:'system',
-    content:
-`You are Comblex, an AI coding pair-programmer for Roblox/Lua and general scripting.
-- When asked to create or edit files, output changes using fenced code blocks with FILENAME headers, like:
-\`\`\`lua filename=server/main.lua
--- code here
-\`\`\`
-- For edits: output full, updated file versions. If multiple files, output multiple blocks.
-- Keep explanations concise; prioritize correct, runnable Lua with comments.`
-  };
-}
-function reviewPrimer(){
-  return {
-    role:'system',
-    content:
-`You are a strict code reviewer who simulates running the code conceptually.
-- Find logic/syntax issues and propose concrete fixes.
-- Return corrected full files using the fenced format described earlier.`
-  };
-}
-
-/** parse fenced blocks into {filename, language, content}[] **/
-function parseFencedBlocks(text){
-  const blocks = [];
-  const regex = /```([a-zA-Z0-9_-]+)?[^\n]*?(?:filename\s*=\s*([^\s]+))?\s*\n([\s\S]*?)```/g;
-  let m;
-  while((m = regex.exec(text))){
-    const lang = (m[1]||'').trim();
-    const fname = (m[2]||'').trim() || guessFilename(lang);
-    const content = m[3];
-    blocks.push({filename: fname, language: lang, content});
-  }
-  return blocks;
-}
-function guessFilename(lang){
-  if(lang.toLowerCase().includes('lua')) return 'main.lua';
-  if(lang.toLowerCase().includes('json')) return 'data.json';
-  return 'snippet.txt';
-}
-
-/** apply blocks to project **/
-function applyBlocks(blocks){
-  let created=0, updated=0;
-  blocks.forEach(b=>{
-    if(store.project[b.filename]===undefined){ created++; }
-    else { updated++; }
-    store.project[b.filename] = b.content;
-  });
-  refreshExplorer(); refreshTabs();
-  if(blocks[0]) openFile(blocks[0].filename);
-  saveState();
-  return {created, updated};
-}
-
-/** multi-generation & merge **/
-async function multiGenerate(userMsg){
-  // run 3 models in parallel
-  const modelList = MODELS.slice(0,3);
-  const messages = [
-    systemPrimer(),
-    ...store.messages,
-    {role:'user', content: userMsg + "\n\nContext files:\n" + filesContextNote()}
-  ];
-  const results = await Promise.all(modelList.map(m=>groqChat(m, messages).catch(e=>'[ERROR '+m+'] '+e.message)));
-
-  // merge prompt
-  const mergePrompt =
-`Combine the three candidate implementations into the BEST single solution.
-- Compare correctness, completeness, readability.
-- If conflicting, choose the most correct approach and explain briefly (max 5 sentences).
-- Return FULL updated files using fenced blocks with filename=... as headers.
-
-===== Candidate A =====
-${results[0]}
-
-===== Candidate B =====
-${results[1]}
-
-===== Candidate C =====
-${results[2]}
-`;
-  const merged = await groqChat('llama-3.3-70b-versatile', [
-    systemPrimer(),
-    {role:'user', content: mergePrompt}
-  ]);
-  return {merged, candidates: results};
-}
-
-/** file context summary for the model **/
-function filesContextNote(){
-  const names = Object.keys(store.project).slice(0,10);
-  let out = names.map(n=>`- ${n} (${store.project[n].length} chars)`).join('\n');
-  if(Object.keys(store.project).length>10) out += `\n- ... and more`;
-  return out;
-}
-
-/** send handler **/
-async function onSend(){
-  const mode = el('#mode').value;
-  const model = el('#model').value;
-  const prompt = el('#prompt').value.trim();
-  if(!prompt) return;
-
-  bubble('user', prompt);
-  el('#prompt').value='';
-
-  // memory includes prior turns, plus minimal project context list
-  const baseMessages = [systemPrimer(), ...store.messages, {role:'user', content: prompt + "\n\nContext files:\n" + filesContextNote()}];
-
-  try{
-    let reply = '';
-    if(mode==='single'){
-      reply = await groqChat(model, baseMessages);
-    }else{
-      const {merged} = await multiGenerate(prompt);
-      reply = merged;
-    }
-
-    // Show assistant reply
-    bubble('assistant', reply);
-
-    // Apply code blocks to project (full-file updates)
-    const blocks = parseFencedBlocks(reply);
-    if(blocks.length){
-      const {created, updated} = applyBlocks(blocks);
-      setConsole(`Applied ${created} new file(s), updated ${updated} file(s).`);
-    }
-
-    // Save conversation memory
-    store.messages.push({role:'user', content: prompt});
-    store.messages.push({role:'assistant', content: reply});
-    saveState();
-
-    // Optional auto-check
-    if(el('#auto-check').checked){
-      const review = await groqChat(MODELS[0], [
-        reviewPrimer(),
-        {role:'user', content:
-`Simulate running the code and propose concrete fixes if needed.
-Project file list:
-${Object.keys(store.project).map(n=>'- '+n).join('\n')}
-
-Provide corrected full files (fenced).`}
-      ]);
-      bubble('assistant', "🧪 Auto Check results:\n\n" + review);
-      const rb = parseFencedBlocks(review);
-      if(rb.length){
-        applyBlocks(rb);
-        setConsole(`Auto Check applied ${rb.length} file(s).`);
+    // --- Groq API integration ---
+    async function generateWithAI(kind, prompt){
+      try {
+        const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem('groq_api_key')||''}`
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-oss-120b",
+            messages: [
+              { role: "system", content: "You are Business.ai, a startup advisor." },
+              { role: "user", content: `Task: ${kind}\\n${prompt}` }
+            ],
+            max_tokens: 600,
+            temperature: 0.7
+          })
+        });
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.content || "(No response)";
+      } catch (e){
+        return "AI Error: "+e.message;
       }
-      store.messages.push({role:'assistant', content: "Auto Check:\n"+review});
-      saveState();
     }
 
-  }catch(e){
-    bubble('assistant', "⚠️ Error: " + e.message);
-  }
-}
+    if (!localStorage.getItem("groq_api_key")){
+      const key = prompt("Enter your Groq API key (saved locally):");
+      if (key) localStorage.setItem("groq_api_key", key.trim());
+    }
 
-/** ========= Editor actions ========= **/
-function initWorkspaceUI(){
-  refreshExplorer(); refreshTabs(); openFile(store.open);
-  // bind buttons
-  el('#btn-new-file').onclick = ()=>{
-    const name = prompt('New file name (e.g., script.lua):','script.lua');
-    if(!name) return;
-    if(store.project[name]!==undefined){ alert('File exists'); return; }
-    store.project[name] = '';
-    openFile(name); refreshExplorer(); refreshTabs(); saveState();
-  };
-  el('#btn-new-folder').onclick = ()=>{
-    const name = prompt('Virtual folder name (prefix path):','folder/');
-    if(!name) return;
-    // folders are virtual; create placeholder README
-    const fname = name.replace(/\/?$/,'/')+'README.txt';
-    if(store.project[fname]){ alert('Folder exists'); return; }
-    store.project[fname] = `# ${name}\n`;
-    openFile(fname); refreshExplorer(); refreshTabs(); saveState();
-  };
-  el('#btn-delete').onclick = ()=>{
-    const name = store.open;
-    if(!name) return;
-    if(!confirm('Delete '+name+' ?')) return;
-    delete store.project[name];
-    const next = Object.keys(store.project)[0];
-    if(next){ openFile(next); } else { el('#editor').value=''; store.open=''; }
-    refreshExplorer(); refreshTabs(); saveState();
-  };
-  el('#btn-save').onclick = ()=>{
-    if(store.open) store.project[store.open] = el('#editor').value;
-    saveState(); setConsole('Saved.');
-  };
-  el('#btn-run').onclick = ()=>simulateRun();
-  el('#btn-format').onclick = ()=>formatLua();
-  el('#btn-download').onclick = ()=>downloadZip();
-  el('#send').onclick = onSend;
-  el('#btn-toggle-left').onclick = ()=>{
-    const app = el('#app');
-    if(app.classList.contains('hide-left')) app.classList.remove('hide-left');
-    else app.classList.add('hide-left');
-  };
-}
+    // --- Project creation ---
+    document.getElementById("startBtn").onclick = async () => {
+      const name = document.getElementById("projName").value || "Untitled";
+      const dream = document.getElementById("projDream").value || "";
+      const proj = {id:"prj_"+id(), name, dream, marks:[], ai:[]};
+      state.projects.unshift(proj);
+      state.active = proj.id; save(); renderProjects(); openProject(proj.id);
+    };
 
-/** crude "simulate run" — static checks & heuristics for Lua **/
-function simulateRun(){
-  if(store.open) store.project[store.open] = el('#editor').value;
-  // Dumb checks: unmatched parentheses/brackets and common Roblox patterns
-  const all = Object.values(store.project).join('\n');
-  const issues = [];
-  const pairs = [
-    ['(',')'],
-    ['[',']'],
-    ['{','}']
-  ];
-  pairs.forEach(([l,r])=>{
-    const lc=(all.match(new RegExp('\\'+l,'g'))||[]).length;
-    const rc=(all.match(new RegExp('\\'+r,'g'))||[]).length;
-    if(lc!==rc) issues.push(`Unbalanced ${l}${r}: ${lc} vs ${rc}`);
-  });
-  if(/wait\s*\(\s*\)/.test(all)) issues.push('Consider wait() durations in Roblox scripts.');
-  if(/game\.Players\.LocalPlayer/.test(all) && /ServerScriptService/.test(all)){
-    issues.push('LocalPlayer usage in server scripts can fail; ensure client context.');
-  }
-  setConsole(issues.length ? 'Simulated run found issues:\n- ' + issues.join('\n- ') : 'Simulated run OK (heuristics only).');
-}
+    // --- Project list ---
+    function renderProjects(){
+      const list = document.getElementById("projectList");
+      list.innerHTML = "";
+      state.projects.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.textContent = p.name;
+        div.onclick = () => openProject(p.id);
+        list.append(div);
+      });
+    }
 
-/** very light formatter for Lua (indent after then/do/function) **/
-function formatLua(){
-  const name = store.open; if(!name) return;
-  const src = el('#editor').value.split('\n');
-  let indent=0;
-  const inc = /(\bthen\b|\bdo\b|\bfunction\b|\brepeat\b)/;
-  const dec = /(\bend\b|\buntil\b)/;
-  const out = src.map(line=>{
-    const dl = dec.test(line) ? Math.max(indent-1,0) : indent;
-    const padded = '  '.repeat(dl) + line.trim();
-    if(inc.test(line)) indent++;
-    if(dec.test(line)) indent=Math.max(indent,0);
-    return padded;
-  }).join('\n');
-  el('#editor').value = out;
-  setConsole('Formatted.');
-}
+    function openProject(pid){
+      state.active = pid; save();
+      document.getElementById("emptyState").style.display="none";
+      document.getElementById("workspaceContent").style.display="block";
+      renderMarks();
+      renderAIResults();
+    }
 
-/** zip download (simple, no external libs: .txt bundle) **/
-function downloadZip(){
-  // Since we promised no external libs, we’ll offer a .tar-ish text bundle
-  const lines = ['# Comblex Project Export'];
-  for(const [k,v] of Object.entries(store.project)){
-    lines.push(`\n===== ${k} =====\n${v}`);
-  }
-  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'comblex_project.txt';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
+    // --- Ideamarks ---
+    document.getElementById("addMarkBtn").onclick = () => {
+      const txt = document.getElementById("newMark").value;
+      if (!txt) return;
+      currentProject().marks.push({id:"mk_"+id(), text:txt});
+      document.getElementById("newMark").value="";
+      save(); renderMarks();
+    };
 
-/** bindings **/
-document.getElementById('gate-enter').onclick = tryEnter;
-document.getElementById('gate-remember').onclick = ()=>{
-  rememberCreds();
-  const m = el('#gate-msg'); m.textContent='Saved locally.'; m.className='msg ok';
-};
-loadCreds();
+    function renderMarks(){
+      const wrap = document.getElementById("marks");
+      wrap.innerHTML="";
+      currentProject().marks.forEach(m=>{
+        const chip = document.createElement("div");
+        chip.className="chip"; chip.textContent=m.text;
+        wrap.append(chip);
+      });
+    }
 
-</script>
+    // --- AI buttons ---
+    document.getElementById("aiNameBtn").onclick = ()=>runAI("name");
+    document.getElementById("aiIdeaBtn").onclick = ()=>runAI("idea");
+    document.getElementById("aiStepsBtn").onclick = ()=>runAI("steps");
+    document.getElementById("runAiBtn").onclick = ()=>runAI("custom");
+
+    async function runAI(kind){
+      const p = currentProject(); if(!p) return;
+      const prompt = document.getElementById("aiPrompt").value || p.dream;
+      const res = await generateWithAI(kind, prompt);
+      p.ai.unshift({kind, content:res}); save(); renderAIResults();
+    }
+
+    function renderAIResults(){
+      const box = document.getElementById("aiResult");
+      box.innerHTML="";
+      currentProject().ai.forEach(r=>{
+        const div = document.createElement("div");
+        div.className="card"; div.innerHTML=`<b>${r.kind}</b><br/>${r.content}`;
+        box.append(div);
+      });
+    }
+
+    // --- Export/Import/Reset ---
+    document.getElementById("exportBtn").onclick = ()=>{
+      const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download="business.ai.json"; a.click();
+    };
+    document.getElementById("importInput").onchange = (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      const r = new FileReader();
+      r.onload = ()=>{ state = JSON.parse(r.result); save(); renderProjects(); };
+      r.readAsText(f);
+    };
+    document.getElementById("resetBtn").onclick = ()=>{
+      if(confirm("Clear all data?")){ state={projects:[],active:''}; save(); renderProjects(); }
+    };
+
+    // Init
+    renderProjects();
+  </script>
 </body>
 </html>
