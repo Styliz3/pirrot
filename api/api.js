@@ -2,22 +2,21 @@
 // File path: /api/api.js
 // NOTE: This demo stores data in-memory. Deploying will reset on cold start.
 // For production, replace these with a real DB (Vercel Postgres / KV).
-
 export const config = { runtime: 'edge' };
 
 // ---- In-memory stores ----
 const store = {
-  users: new Map(), // email -> { id, email, username, ratingAverage, ratingCount }
-  posts: new Map(), // id -> post
-  postThrottle: new Map(), // userId -> timestamp
-  ratings: [], // { id, fromId, toId, value, createdAt }
-  reports: [], // { id, reporterId, targetType, targetId, reason, createdAt }
+  users: new Map(),
+  posts: new Map(),
+  postThrottle: new Map(),
+  ratings: [],
+  reports: [],
 };
 
 const MOD_CODE = process.env.MOD_ACCESS_CODE || 'letmein-f2-demo';
 
 // Utility
-const uid = ()n=> crypto.randomUUID();
+const uid = () => crypto.randomUUID();
 const now = () => new Date();
 
 function getOrCreateUser(profile){
