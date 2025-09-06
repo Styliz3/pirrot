@@ -1,54 +1,34 @@
-// api/api.js
-// EasyRun prototype API
-
-let servers = {}; // store servers in memory
+// api/server/[id].js
+import { serversDB, logsDB } from "../../lib/db";
 
 export default async function handler(req, res) {
-  const { method } = req;
-  const { id, action, route } = req.query;
+  const { id } = req.query;
+  const server = await serversDB.get(id);
+  if (!server) return res.status(404).json({ error: "Server not found" });
 
-  if (method === "POST") {
-    // Create a new server
-    const body = req.body || {};
-    const serverId = Date.now().toString();
-
-    servers[serverId] = {
-      id: serverId,
-      name: body.name || "My Server",
-      created: Date.now(),
-      running: true,
-      routes: {
-        "/hello": (req, res) => res.json({ msg: "Hello from EasyRun server!" }),
-      },
-    };
-
-    return res.status(200).json({ success: true, server: servers[serverId] });
+  // Auth check
+  const apiKey = req.headers["x-api-key"];
+  if (server.requireKey && apiKey !== server.apiKey) {
+    return res.status(403).json({ error: "Invalid API key" });
   }
 
-  if (method === "GET") {
-    if (!id) {
-      // List all servers
-      return res.status(200).json(Object.values(servers));
-    }
+  // Log request
+  await logsDB.insert({
+    serverId: id,
+    method: req.method,
+    path: req.url,
+    ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    time: Date.now()
+  });
 
-    const server = servers[id];
-    if (!server) return res.status(404).json({ error: "Server not found" });
+  // Match route
+  const route = server.routes[req.url.split("?")[0]];
+  if (!route) return res.status(404).json({ error: "Route not found" });
 
-    // Check if requesting a specific route
-    if (route && server.routes[`/${route}`]) {
-      return server.routes[`/${route}`](req, res);
-    }
-
-    return res.status(200).json(server);
+  try {
+    const fn = new Function("req", "res", route.code);
+    await fn(req, res);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-
-  if (method === "DELETE") {
-    if (!id || !servers[id]) {
-      return res.status(404).json({ error: "Server not found" });
-    }
-    delete servers[id];
-    return res.status(200).json({ success: true });
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
 }
