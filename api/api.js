@@ -1,13 +1,49 @@
 // api/api.js
-// EasyRun! Professional backend in a single file
-// This is an in-memory system. Replace with DB for production.
+// EasyRun! Professional backend with templates
+// In-memory only (reset on restart). Replace with DB for persistence.
 
 let servers = {};
 let logs = [];
 
+// Utility: Generate API keys
 function createApiKey() {
   return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
 }
+
+// Pre-made templates
+const templates = {
+  chatbot: {
+    name: "Chatbot API",
+    routes: {
+      "/chat": `
+        const { message } = req.query;
+        res.status(200).json({ reply: "🤖 Bot says: " + (message || "Hello!") });
+      `
+    }
+  },
+  json: {
+    name: "JSON Store API",
+    routes: {
+      "/data": `
+        res.status(200).json({ items: [1, 2, 3, 4, 5] });
+      `
+    }
+  },
+  webhook: {
+    name: "Webhook Receiver",
+    routes: {
+      "/hook": `
+        res.status(200).json({ received: true, body: req.body });
+      `
+    }
+  },
+  blank: {
+    name: "Blank Server",
+    routes: {
+      "/hello": `res.status(200).json({ msg: "Hello from EasyRun!" });`
+    }
+  }
+};
 
 export default async function handler(req, res) {
   const { method } = req;
@@ -17,21 +53,16 @@ export default async function handler(req, res) {
   if (method === "POST") {
     const body = req.body || {};
     const serverId = Date.now().toString(36);
+    const template = templates[body.template] || templates.blank;
 
     servers[serverId] = {
       id: serverId,
-      name: body.name || "My EasyRun Server",
-      template: body.template || "blank",
+      name: body.name || template.name,
       created: Date.now(),
       running: true,
       apiKey: createApiKey(),
-      routes: {
-        "/hello": `res.status(200).json({ message: "Hello from ${body.name || "server"}!" })`
-      },
-      settings: {
-        requireKey: true,
-        analytics: true
-      }
+      routes: { ...template.routes },
+      settings: { requireKey: true, analytics: true }
     };
 
     return res.status(200).json({ success: true, server: servers[serverId] });
@@ -43,11 +74,11 @@ export default async function handler(req, res) {
   }
 
   // ---- GET SPECIFIC SERVER ----
-  if (method === "GET" && id) {
+  if (method === "GET" && id && !route) {
     const server = servers[id];
     if (!server) return res.status(404).json({ error: "Server not found" });
 
-    // Return analytics
+    // Get logs
     const serverLogs = logs.filter(l => l.serverId === id);
     return res.status(200).json({ ...server, logs: serverLogs });
   }
@@ -71,7 +102,6 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Invalid API key" });
     }
 
-    // Route lookup
     const path = "/" + route;
     const code = server.routes[path];
     if (!code) return res.status(404).json({ error: "Route not found" });
@@ -107,6 +137,11 @@ export default async function handler(req, res) {
     if (!servers[id]) return res.status(404).json({ error: "Server not found" });
     servers[id].settings = { ...servers[id].settings, ...settings };
     return res.status(200).json({ success: true, settings: servers[id].settings });
+  }
+
+  // ---- LIST TEMPLATES ----
+  if (method === "GET" && action === "templates") {
+    return res.status(200).json(Object.keys(templates));
   }
 
   return res.status(405).json({ error: "Method not allowed" });
