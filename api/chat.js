@@ -17,7 +17,8 @@ export default async function handler(req, res) {
         model: "openai/gpt-oss-120b",
         messages,
         max_tokens: 800,
-        temperature: 0.7
+        temperature: 0.7,
+        stream: true // toggle true later if you want raw streaming
       })
     });
 
