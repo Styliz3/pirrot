@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Auto Subtitles – Shorts Generator</title>
+  <title>Clipscribe AI — Auto Subtitles for Shorts</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -11,352 +11,117 @@
       --panel: #121216;
       --text: #e8e8f0;
       --muted: #9aa0aa;
-      --brand: #7c5cff;
+      --brand: #8a7bff;
+      --brand2: #20e3b2;
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    * { box-sizing: border-box; margin:0; padding:0; }
     body {
-      margin: 0;
-      background: radial-gradient(1200px 600px at 70% -20%, #191a22 0%, #0b0b0d 60%);
+      background: radial-gradient(1200px 600px at 70% -20%, #181a21 0%, #0b0b0d 60%);
       color: var(--text);
-      font: 15px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      display: grid;
-      place-items: start center;
-      padding: 24px;
+      font: 16px/1.5 Inter, system-ui, sans-serif;
     }
 
-    /* Komika Axis font (drop KomikaAxis.ttf in the project root or adjust the src) */
-    @font-face {
-      font-family: 'KomikaAxis';
-      src: url('./KomikaAxis.ttf') format('truetype');
-      font-display: swap;
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 32px; backdrop-filter: blur(10px);
+    }
+    .brand { font-weight: 800; font-size: 20px; display: flex; gap: 8px; align-items:center; }
+    .brand span { width: 12px; height: 12px; border-radius: 50%; background: conic-gradient(from 0deg,var(--brand),var(--brand2),var(--brand)); }
+    .btn {
+      padding: 10px 18px; border-radius: 12px; text-decoration: none;
+      background: var(--brand); color:#fff; font-weight:600; border:none; cursor:pointer;
     }
 
-    .wrap { width: min(1100px, 100%); }
+    .hero { text-align:center; padding:80px 20px 40px; }
+    .hero h1 { font-size:48px; line-height:1.1; }
+    .hero p { margin-top:12px; color:var(--muted); }
+    .cta { margin-top:20px; }
 
-    .header {
-      display: flex; gap: 16px; align-items: center; justify-content: space-between;
-      margin-bottom: 18px;
+    .wrap { width:min(1100px,100%); margin:40px auto; display:grid; grid-template-columns:360px 1fr; gap:20px; padding:0 20px; }
+    .card { background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:16px; }
+
+    .controls label { display:block; font-size:14px; margin:10px 0 6px; color:var(--muted); }
+    .controls input[type=file], .controls select, .controls button {
+      width:100%; border-radius:12px; padding:10px 12px;
+      border:1px solid rgba(255,255,255,.08); background:var(--panel); color:var(--text);
     }
-    h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.2px; }
-    .tag { color: var(--muted); font-size: 13px; }
+    .controls button { margin-top:10px; cursor:pointer; font-weight:600; }
+    .controls .actions { display:flex; gap:10px; margin-top:12px; }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 18px;
-    }
-
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-      border: 1px solid rgba(255,255,255,0.06);
-      box-shadow: 0 4px 30px rgba(0,0,0,0.25);
-      border-radius: 16px;
-      padding: 16px;
-    }
-
-    .controls label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 6px; }
-    .controls input[type="file"], .controls select, .controls button {
-      width: 100%;
-      background: var(--panel);
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 10px 12px;
-      outline: none;
-    }
-    .controls button { cursor: pointer; font-weight: 600; }
-    .controls .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-    .actions { display: flex; gap: 10px; margin-top: 12px; }
-    .primary { background: var(--brand); border: none; }
-
-    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; opacity: 0.9; white-space: pre-wrap; }
-
-    /* Player */
-    .player {
-      position: relative;
-      aspect-ratio: 9/16;
-      background: #000;
-      border-radius: 16px;
-      overflow: hidden;
-      display: grid;
-      place-items: center;
-    }
-    video { width: 100%; height: 100%; object-fit: contain; background: #000; }
-
-    /* Caption overlay (Komika Axis, white fill, black stroke) */
-    .captions {
-      pointer-events: none;
-      position: absolute; inset: 0; display: grid; place-items: end center; padding: 6% 4% 8%;
-    }
+    .player { position:relative; aspect-ratio:9/16; background:#000; border-radius:16px; overflow:hidden; }
+    video { width:100%; height:100%; object-fit:contain; }
+    .captions { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:8%; text-align:center; }
     .caption-line {
-      font-family: KomikaAxis, Impact, 'Arial Black', system-ui, sans-serif;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: #fff;
-      /* pseudo stroke with multiple shadows */
-      text-shadow:
-        0 2px 0 #000,
-        2px 0 0 #000,
-        0 -2px 0 #000,
-        -2px 0 0 #000,
-        2px 2px 0 #000,
-        -2px -2px 0 #000,
-        2px -2px 0 #000,
-        -2px 2px 0 #000,
-        0 0 10px rgba(0,0,0,0.8);
-      text-align: center;
-      line-height: 1.1;
-      /* responsive size: bigger for vertical video */
-      font-size: clamp(20px, 5vw, 42px);
-      transform: translateY(-2%);
+      font-family: KomikaAxis, Impact, 'Arial Black', sans-serif;
+      font-size:32px; font-weight:800; color:#fff;
+      text-shadow:0 2px 0 #000,2px 0 0 #000,-2px 0 0 #000,0 -2px 0 #000,0 0 8px #000;
     }
-    .caption-line .em { color: #ffe46b; }
-
-    .pill {
-      display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 999px;
-      background: rgba(124, 92, 255, 0.15); border: 1px solid rgba(124,92,255,0.35);
-      font-size: 12px; color: #cfc8ff; font-weight: 600;
-    }
+    .caption-line .em { color:#ffe46b; }
+    pre { font-size:12px; white-space:pre-wrap; color:var(--muted); margin-top:10px; }
   </style>
-  <!-- Transformers.js for on-device ASR (Whisper tiny.en) -->
   <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.0/dist/transformers.min.js"></script>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
-      <div>
-        <h1>Auto Subtitles for Shorts</h1>
-        <div class="tag">Upload a short video, pick 1‑word or 3‑word captions, click <b>Generate</b>.</div>
+  <header>
+    <div class="brand"><span></span>Clipscribe AI</div>
+    <a href="#app" class="btn">Start now</a>
+  </header>
+
+  <section class="hero">
+    <h1>1 video → Perfect Captions</h1>
+    <p>Generate bold Komika Axis subtitles for TikToks/Shorts. On-device, private, and free.</p>
+    <div class="cta"><a href="#app" class="btn">Start now</a></div>
+  </section>
+
+  <main id="app" class="wrap">
+    <div class="card controls">
+      <label>Upload video</label>
+      <input id="file" type="file" accept="video/*" />
+      <label>Words per subtitle</label>
+      <select id="wordsPer"><option value="1">1</option><option value="3" selected>3</option></select>
+      <label>Emphasize every</label>
+      <select id="emEvery"><option value="0">None</option><option value="3">3rd</option><option value="5">5th</option></select>
+      <div class="actions">
+        <button id="go">Generate</button>
+        <button id="downloadVTT" disabled>Download .vtt</button>
       </div>
-      <div class="pill">On‑device • No upload • Free</div>
+      <pre id="log"></pre>
     </div>
-
-    <div class="grid">
-      <!-- Left: controls -->
-      <div class="card controls">
-        <label>Upload video (MP4/MOV/WEBM)</label>
-        <input id="file" type="file" accept="video/*" />
-
-        <div class="row">
-          <div>
-            <label>Words per subtitle</label>
-            <select id="wordsPer">
-              <option value="1">1 (karaoke‑like)</option>
-              <option value="3" selected>Up to 3</option>
-            </select>
-          </div>
-          <div>
-            <label>Emphasize every</label>
-            <select id="emEvery">
-              <option value="0" selected>No emphasis</option>
-              <option value="3">3rd word</option>
-              <option value="5">5th word</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button class="primary" id="go">Generate</button>
-          <button id="downloadVTT" disabled>Download .vtt</button>
-        </div>
-
-        <div style="height:12px"></div>
-        <div class="log" id="log"></div>
-      </div>
-
-      <!-- Right: player -->
-      <div class="card">
-        <div class="player">
-          <video id="video" controls playsinline></video>
-          <div class="captions"><div class="caption-line" id="caption"></div></div>
-        </div>
+    <div class="card">
+      <div class="player">
+        <video id="video" controls></video>
+        <div class="captions"><div class="caption-line" id="caption"></div></div>
       </div>
     </div>
-  </div>
+  </main>
 
 <script>
-const logEl = document.getElementById('log');
-function log(msg) { logEl.textContent += `\n${msg}`; }
+const logEl=document.getElementById('log');const videoEl=document.getElementById('video');const captionEl=document.getElementById('caption');
+const fileEl=document.getElementById('file');const wordsPerEl=document.getElementById('wordsPer');const emEveryEl=document.getElementById('emEvery');
+const goBtn=document.getElementById('go');const dlBtn=document.getElementById('downloadVTT');let cues=[];let lastURL;
 
-const fileEl = document.getElementById('file');
-const videoEl = document.getElementById('video');
-const captionEl = document.getElementById('caption');
-const wordsPerEl = document.getElementById('wordsPer');
-const emEveryEl = document.getElementById('emEvery');
-const goBtn = document.getElementById('go');
-const dlBtn = document.getElementById('downloadVTT');
+function log(m){logEl.textContent+=`\\n${m}`;}
 
-let lastURL; let cues = [];
+fileEl.onchange=()=>{const f=fileEl.files?.[0];if(!f)return;if(lastURL)URL.revokeObjectURL(lastURL);lastURL=URL.createObjectURL(f);videoEl.src=lastURL;log('Ready.');};
 
-fileEl.addEventListener('change', () => {
-  const f = fileEl.files?.[0];
-  if (!f) return;
-  if (lastURL) URL.revokeObjectURL(lastURL);
-  lastURL = URL.createObjectURL(f);
-  videoEl.src = lastURL;
-  logEl.textContent = 'Ready. Click Generate to transcribe.';
-});
+async function decodeToMono16k(file){const ab=await file.arrayBuffer();const ctx=new AudioContext();const buf=await ctx.decodeAudioData(ab.slice(0));
+const off=new OfflineAudioContext(1,Math.ceil(buf.duration*16000),16000);const mono=off.createBuffer(1,buf.length,buf.sampleRate);const ch0=buf.getChannelData(0);
+if(buf.numberOfChannels===1)mono.copyToChannel(ch0,0);else{const ch1=buf.getChannelData(1),m=mono.getChannelData(0);for(let i=0;i<buf.length;i++)m[i]=.5*(ch0[i]+ch1[i]);}
+const src=off.createBufferSource();src.buffer=mono;src.connect(off.destination);src.start();const rendered=await off.startRendering();return rendered.getChannelData(0);}
 
-// Convert a File (video) -> mono Float32Array at 16000 Hz using Web Audio
-async function decodeToMono16k(file) {
-  const arrayBuffer = await file.arrayBuffer();
-  const audioCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 16000 * 1200, 16000); // up to 20 min buffer
-  // Try decode using a normal AudioContext first to get AudioBuffer
-  const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
-  let decoded;
-  try {
-    decoded = await tmpCtx.decodeAudioData(arrayBuffer.slice(0));
-  } catch (e) {
-    tmpCtx.close();
-    throw new Error('Could not decode audio from this video in the browser. Try MP4 (H.264/AAC).');
-  }
-  const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * 16000), 16000);
-  const src = offline.createBufferSource();
-  // Downmix to mono
-  const mono = offline.createBuffer(1, decoded.length, decoded.sampleRate);
-  const ch0 = decoded.getChannelData(0);
-  if (decoded.numberOfChannels === 1) {
-    mono.copyToChannel(ch0, 0);
-  } else {
-    const ch1 = decoded.getChannelData(1);
-    const m = mono.getChannelData(0);
-    const n = decoded.length;
-    for (let i = 0; i < n; i++) m[i] = 0.5 * (ch0[i] + ch1[i]);
-  }
-  // Resample by playing into OfflineAudioContext at 16k
-  const tmp = offline.createBufferSource();
-  tmp.buffer = mono;
-  tmp.connect(offline.destination);
-  tmp.start();
-  const rendered = await offline.startRendering();
-  const mono16k = rendered.getChannelData(0);
-  tmpCtx.close();
-  return mono16k;
-}
+function groupWords(words,n){const g=[];for(let i=0;i<words.length;i+=n){const s=words.slice(i,i+n);g.push({text:s.map(w=>w.word).join(' '),start:s[0].start,end:s[s.length-1].end})}return g;}
 
-// Build WebVTT from word list
-function buildVTT(groups) {
-  let vtt = 'WEBVTT\n\n';
-  function fmt(t) {
-    const h = Math.floor(t / 3600).toString().padStart(2,'0');
-    const m = Math.floor((t % 3600) / 60).toString().padStart(2,'0');
-    const s = (t % 60).toFixed(3).padStart(6,'0');
-    return `${h}:${m}:${s.replace('.',',')}`.replace(',', '.'); // WebVTT uses '.'
-  }
-  groups.forEach((g, i) => {
-    vtt += `${i+1}\n${fmt(g.start)} --> ${fmt(g.end)}\n${g.text}\n\n`;
-  });
-  return vtt;
-}
+function attachOverlay(groups,every){cues=groups;videoEl.ontimeupdate=()=>{const t=videoEl.currentTime;const c=cues.find(x=>t>=x.start&&t<=x.end);
+if(!c){captionEl.innerHTML='';return;}if(every>0){captionEl.innerHTML=c.text.split(/\\s+/).map((w,i)=>((i+1)%every===0?`<span class='em'>${w}</span>`:w)).join(' ');}else captionEl.textContent=c.text;}};
 
-// Group words into captions
-function groupWords(words, wordsPer) {
-  const groups = [];
-  for (let i = 0; i < words.length; i += wordsPer) {
-    const slice = words.slice(i, i + wordsPer);
-    const text = slice.map(w => w.word).join(' ').replace(/\s+/g,' ').trim();
-    const start = slice[0].start;
-    const end = slice[slice.length - 1].end;
-    groups.push({ text, start, end });
-  }
-  return groups;
-}
+let asr;async function ensure(){if(asr)return asr;const {pipeline}=window.transformers;asr=await pipeline('automatic-speech-recognition','Xenova/whisper-tiny.en');return asr;}
 
-// Render overlay during playback
-function attachOverlay(groups, emEvery) {
-  cues = groups;
-  const update = () => {
-    const t = videoEl.currentTime;
-    const cur = cues.find(c => t >= c.start && t <= c.end);
-    if (!cur) { captionEl.innerHTML = ''; return; }
-    if (emEvery > 0) {
-      const words = cur.text.split(/\s+/);
-      const highlighted = words.map((w, i) => ( (i+1) % emEvery === 0 ? `<span class="em">${w}</span>` : w ));
-      captionEl.innerHTML = highlighted.join(' ');
-    } else {
-      captionEl.textContent = cur.text;
-    }
-  };
-  videoEl.removeEventListener('timeupdate', videoEl.__capHandler);
-  videoEl.__capHandler = update;
-  videoEl.addEventListener('timeupdate', update);
-}
+async function generate(){const f=fileEl.files?.[0];if(!f){alert('Pick a video');return;}goBtn.disabled=true;dlBtn.disabled=true;captionEl.textContent='';log('Decoding...');const audio=await decodeToMono16k(f);
+log('Transcribing...');const model=await ensure();const out=await model(audio,{chunk_length_s:25,stride_length_s:5,return_timestamps:true});const words=[];(out.segments||[]).forEach(s=>(s.words||[]).forEach(w=>{if(w.start!==undefined)words.push({word:w.word.trim(),start:w.start,end:w.end})}));
+const groups=groupWords(words,parseInt(wordsPerEl.value));attachOverlay(groups,parseInt(emEveryEl.value));const vtt='WEBVTT\\n\\n'+groups.map((g,i)=>`${i+1}\\n00:00:${g.start.toFixed(3)} --> 00:00:${g.end.toFixed(3)}\\n${g.text}\\n`).join('\\n');const blob=new Blob([vtt],{type:'text/vtt'});const url=URL.createObjectURL(blob);
+dlBtn.disabled=false;dlBtn.onclick=()=>{const a=document.createElement('a');a.href=url;a.download='captions.vtt';a.click();};log('✅ Done!');goBtn.disabled=false;}
 
-// Main: transcribe with Transformers.js Whisper tiny.en
-let asrPipeline;
-async function ensurePipeline() {
-  if (asrPipeline) return asrPipeline;
-  log('Loading speech model (tiny.en)…');
-  const { pipeline } = window.transformers;
-  asrPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
-  log('Model loaded.');
-  return asrPipeline;
-}
-
-async function generate() {
-  const f = fileEl.files?.[0];
-  if (!f) { alert('Please choose a video first.'); return; }
-
-  goBtn.disabled = true; dlBtn.disabled = true; captionEl.textContent = '';
-  logEl.textContent = 'Decoding audio…';
-  let audio;
-  try {
-    audio = await decodeToMono16k(f);
-  } catch (e) {
-    log(`\n${e.message}`);
-    goBtn.disabled = false; return;
-  }
-  log('\nTranscribing… (chunked)');
-  const asr = await ensurePipeline();
-  // Whisper returns segments with word timestamps when return_timestamps: true
-  const out = await asr(audio, {
-    chunk_length_s: 25,
-    stride_length_s: 5,
-    return_timestamps: true,
-    // language: 'en', // auto by default; set if your clips are English only
-  });
-  // Collect word-level timings
-  const allWords = [];
-  (out.segments || []).forEach(seg => {
-    (seg.words || []).forEach(w => {
-      if (typeof w.start === 'number' && typeof w.end === 'number') {
-        allWords.push({ word: w.word.trim(), start: w.start, end: w.end });
-      }
-    });
-  });
-
-  if (!allWords.length) {
-    log('\nNo word timestamps returned. Try a clearer clip.');
-    goBtn.disabled = false; return;
-  }
-
-  const wordsPer = parseInt(wordsPerEl.value, 10);
-  const groups = groupWords(allWords, wordsPer);
-  attachOverlay(groups, parseInt(emEveryEl.value, 10));
-
-  // Build and enable VTT download
-  const vtt = buildVTT(groups);
-  const blob = new Blob([vtt], { type: 'text/vtt' });
-  const url = URL.createObjectURL(blob);
-  dlBtn.disabled = false;
-  dlBtn.onclick = () => {
-    const a = document.createElement('a');
-    a.href = url; a.download = (f.name.replace(/\.[^.]+$/, '') || 'captions') + '.vtt';
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-  log('\n✅ Done! Subtitles generated. Use Download .vtt or record your screen with overlay.');
-  goBtn.disabled = false;
-}
-
-document.getElementById('go').addEventListener('click', () => {
-  generate().catch(err => {
-    console.error(err);
-    log(`\nError: ${err.message || err}`);
-    goBtn.disabled = false;
-  });
-});
+goBtn.onclick=()=>generate();
 </script>
 </body>
 </html>
