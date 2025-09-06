@@ -90,6 +90,7 @@
 
   <div class="card" id="chat-card" style="display:none;">
     <h1>Groq Chatbot</h1>
+    <input type="password" id="user-groq-key" placeholder="Enter your Groq API Key"/>
     <select id="model">
       <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
       <option value="meta-llama/llama-4-maverick-17b-128k">Llama 4 Maverick 17B 128k</option>
@@ -103,34 +104,72 @@
   <script>
     // Access Code Logic
     async function checkAccess() {
-      const code = document.getElementById("access-input").value;
-      const res = await fetch("/api/check?code=" + encodeURIComponent(code));
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById("access-card").style.display = "none";
-        document.getElementById("chat-card").style.display = "block";
-      } else {
-        document.getElementById("access-msg").textContent = "Invalid code.";
+      const msgEl = document.getElementById("access-msg");
+      const code = document.getElementById("access-input").value.trim();
+
+      msgEl.textContent = "Checking…";
+      msgEl.style.opacity = "0.8";
+
+      try {
+        const res = await fetch("/api/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        });
+
+        let data = {};
+        try { data = await res.json(); } catch {}
+
+        if (!res.ok) {
+          msgEl.textContent = data.message || `Access denied (${res.status})`;
+          msgEl.style.color = "#ff6b6b";
+          return;
+        }
+
+        msgEl.textContent = data.message || "Access granted";
+        msgEl.style.color = "#7CFC98";
+
+        setTimeout(() => {
+          document.getElementById("access-card").style.display = "none";
+          document.getElementById("chat-card").style.display = "block";
+        }, 500);
+      } catch (e) {
+        msgEl.textContent = "Network/server error.";
+        msgEl.style.color = "#ff6b6b";
       }
     }
 
-    // Chatbot
+    // Chatbot (calls Groq API directly with user's key)
     async function sendMessage() {
       const inputEl = document.getElementById("user-input");
       const text = inputEl.value.trim();
-      if (!text) return;
+      const apiKey = document.getElementById("user-groq-key").value.trim();
+      if (!text || !apiKey) return;
 
       appendMessage("user", text);
       inputEl.value = "";
 
       const model = document.getElementById("model").value;
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, text })
-      });
-      const data = await res.json();
-      appendMessage("bot", data.reply || "Error: no response");
+
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + apiKey
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: text }]
+          })
+        });
+
+        const data = await res.json();
+        const reply = data.choices?.[0]?.message?.content || "No response";
+        appendMessage("bot", reply);
+      } catch (err) {
+        appendMessage("bot", "Error: " + err.message);
+      }
     }
 
     function appendMessage(role, text) {
