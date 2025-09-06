@@ -1,229 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Business.ai — Dream it, build it.</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Olida — AI Assistant</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    /* --- Styling: white theme, rounded, black outlines --- */
     :root {
-      --bg: #fff;
-      --fg: #111;
-      --muted: #6b7280;
-      --card: #fafafa;
-      --radius: 18px;
-      --shadow: 0 10px 30px rgba(0,0,0,.08);
-      --outline: 2px solid #111;
+      --bg: #fff; --fg: #111; --muted: #666;
+      --accent: #111; --outline: 1px solid #ddd;
+      --radius: 12px;
+    }
+    [data-theme="dark"] {
+      --bg: #111; --fg: #eee; --muted: #aaa;
+      --accent: #eee; --outline: 1px solid #333;
     }
     body {
-      margin: 0;
-      font-family: Inter, system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--fg);
+      margin:0; font-family: Inter, sans-serif;
+      display:grid; grid-template-columns: 260px 1fr;
+      height:100vh; background: var(--bg); color: var(--fg);
     }
-    .app { display:grid; grid-template-rows:auto 1fr; gap:24px; padding:24px; max-width:1200px; margin:0 auto; }
-    .nav { display:flex; justify-content:space-between; align-items:center; border:var(--outline); border-radius:var(--radius); padding:12px 16px; background:var(--card); box-shadow:var(--shadow); }
-    .logo { border:var(--outline); border-radius:12px; width:36px; height:36px; display:grid; place-items:center; font-weight:900; }
-    .btn { border:var(--outline); border-radius:12px; padding:8px 14px; background:#fff; font-weight:600; cursor:pointer; box-shadow:var(--shadow); }
-    .btn:hover { transform:translateY(-1px); }
-    .pill { border:var(--outline); border-radius:999px; padding:6px 10px; font-size:12px; background:#fff; }
-    .panel { border:var(--outline); border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); padding:16px; }
-    .workspace { border:var(--outline); border-radius:var(--radius); background:#fff; box-shadow:var(--shadow); padding:18px; display:grid; gap:16px; }
-    .input, textarea { width:100%; border:var(--outline); border-radius:12px; padding:12px; }
-    .card { border:var(--outline); border-radius:var(--radius); background:#fff; padding:14px; box-shadow:var(--shadow); margin-bottom:8px; }
-    .chips { display:flex; gap:8px; flex-wrap:wrap; }
-    .chip { border:var(--outline); border-radius:999px; padding:6px 10px; background:#fff; }
+    /* Sidebar */
+    .sidebar {
+      border-right: var(--outline);
+      display:flex; flex-direction:column;
+      background: var(--bg); padding:12px;
+    }
+    .sidebar h2 { font-size:16px; margin:8px 0; }
+    .chat-list { flex:1; overflow-y:auto; }
+    .chat-item {
+      padding:10px; border-radius: var(--radius);
+      cursor:pointer; margin-bottom:6px;
+    }
+    .chat-item.active { background: var(--accent); color: var(--bg); }
+    .btn { padding:8px 12px; border: var(--outline); border-radius: var(--radius); background: var(--bg); cursor:pointer; }
+    .btn:hover { opacity:0.8; }
+    /* Main */
+    .main { display:flex; flex-direction:column; height:100vh; }
+    .topbar {
+      padding:12px; border-bottom: var(--outline);
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .chat {
+      flex:1; overflow-y:auto; padding:20px;
+      display:flex; flex-direction:column; gap:14px;
+    }
+    .msg { max-width:70%; padding:12px 14px; border-radius: var(--radius); line-height:1.5; white-space:pre-wrap; }
+    .msg.user { align-self:flex-end; background:#eaeaea; }
+    [data-theme="dark"] .msg.user { background:#333; }
+    .msg.ai { align-self:flex-start; background:#fdfdfd; border: var(--outline); }
+    [data-theme="dark"] .msg.ai { background:#1a1a1a; }
+    .input-bar {
+      display:flex; padding:12px; border-top: var(--outline); gap:10px;
+    }
+    textarea {
+      flex:1; padding:12px; border-radius: var(--radius); border: var(--outline);
+      resize:none; font:inherit; background:var(--bg); color:var(--fg);
+    }
+    button { padding:12px 18px; border-radius: var(--radius); border: var(--outline); background: var(--bg); color: var(--fg); cursor:pointer; }
   </style>
 </head>
-<body>
-  <div class="app">
-    <!-- Header -->
-    <nav class="nav">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div class="logo">AI</div>
-        <div>
-          <div style="font-weight:800;">Business.ai</div>
-          <div style="font-size:12px;color:var(--muted)">Dream it → Ship it</div>
-        </div>
-      </div>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <button class="btn" id="exportBtn">Export</button>
-        <label class="btn">Import <input id="importInput" type="file" accept="application/json" style="display:none"/></label>
-        <button class="btn" id="resetBtn">Reset</button>
-        <div class="pill" id="userBadge">Guest</div>
-      </div>
-    </nav>
-
-    <div style="display:grid; grid-template-columns:300px 1fr; gap:24px;">
-      <!-- Sidebar -->
-      <aside class="panel">
-        <h3>New Project</h3>
-        <input id="projName" class="input" placeholder="Project name"/>
-        <textarea id="projDream" rows="3" class="input" placeholder="Describe your dream business..."></textarea>
-        <button class="btn" id="startBtn">Start</button>
-        <h3>Projects</h3>
-        <div id="projectList"></div>
-      </aside>
-
-      <!-- Workspace -->
-      <main class="workspace">
-        <div id="emptyState">Click <b>Start</b> after describing your dream business.</div>
-        <div id="workspaceContent" style="display:none;">
-          <div style="display:flex; gap:10px;">
-            <button class="btn" id="aiNameBtn">AI: Name Ideas</button>
-            <button class="btn" id="aiIdeaBtn">AI: Business Ideas</button>
-            <button class="btn" id="aiStepsBtn">AI: Build Steps</button>
-          </div>
-          <input id="aiPrompt" class="input" placeholder="Refine your prompt"/>
-          <button class="btn" id="runAiBtn">Run AI</button>
-          <div>
-            <h4>Ideamarks</h4>
-            <input id="newMark" class="input" placeholder="Add an ideamark"/>
-            <button class="btn" id="addMarkBtn">Add</button>
-            <div id="marks" class="chips"></div>
-          </div>
-          <div>
-            <h4>AI Output</h4>
-            <div id="aiResult"></div>
-          </div>
-        </div>
-      </main>
+<body data-theme="light">
+  <div class="sidebar">
+    <h2>Olida</h2>
+    <button class="btn" id="newChat">+ New Chat</button>
+    <div class="chat-list" id="chatList"></div>
+    <button class="btn" id="themeToggle">Toggle Theme</button>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div id="chatTitle">New Chat</div>
+    </div>
+    <div class="chat" id="chat"></div>
+    <div class="input-bar">
+      <textarea id="input" rows="1" placeholder="Type a message..."></textarea>
+      <button id="send">Send</button>
     </div>
   </div>
 
   <script>
-    const DB_KEY = "business.ai/v1";
-    const id = () => Math.random().toString(36).slice(2,9);
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
+    const chatList = document.getElementById("chatList");
+    const chatTitle = document.getElementById("chatTitle");
 
-    let state = JSON.parse(localStorage.getItem(DB_KEY) || '{"projects":[],"active":""}');
+    let chats = JSON.parse(localStorage.getItem("olida_chats")||"[]");
+    let activeId = null;
 
-    function save(){ localStorage.setItem(DB_KEY, JSON.stringify(state)); }
-    function currentProject(){ return state.projects.find(p => p.id === state.active); }
+    function save(){ localStorage.setItem("olida_chats", JSON.stringify(chats)); }
 
-    // --- Groq API integration ---
-    async function generateWithAI(kind, prompt){
-      try {
-        const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem('groq_api_key')||''}`
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-oss-120b",
-            messages: [
-              { role: "system", content: "You are Business.ai, a startup advisor." },
-              { role: "user", content: `Task: ${kind}\\n${prompt}` }
-            ],
-            max_tokens: 600,
-            temperature: 0.7
-          })
-        });
-        const data = await resp.json();
-        return data.choices?.[0]?.message?.content || "(No response)";
-      } catch (e){
-        return "AI Error: "+e.message;
-      }
+    function newChat(){
+      const id = Date.now().toString();
+      chats.unshift({id, title:"New Chat", messages:[
+        { role:"system", content:"You are Olida, a professional AI assistant." }
+      ]});
+      activeId = id; save(); renderChats(); renderActive();
     }
 
-    if (!localStorage.getItem("groq_api_key")){
-      const key = prompt("Enter your Groq API key (saved locally):");
-      if (key) localStorage.setItem("groq_api_key", key.trim());
-    }
-
-    // --- Project creation ---
-    document.getElementById("startBtn").onclick = async () => {
-      const name = document.getElementById("projName").value || "Untitled";
-      const dream = document.getElementById("projDream").value || "";
-      const proj = {id:"prj_"+id(), name, dream, marks:[], ai:[]};
-      state.projects.unshift(proj);
-      state.active = proj.id; save(); renderProjects(); openProject(proj.id);
-    };
-
-    // --- Project list ---
-    function renderProjects(){
-      const list = document.getElementById("projectList");
-      list.innerHTML = "";
-      state.projects.forEach(p => {
+    function renderChats(){
+      chatList.innerHTML="";
+      chats.forEach(c=>{
         const div = document.createElement("div");
-        div.className = "card";
-        div.textContent = p.name;
-        div.onclick = () => openProject(p.id);
-        list.append(div);
+        div.className="chat-item"+(c.id===activeId?" active":"");
+        div.textContent=c.title;
+        div.onclick=()=>{ activeId=c.id; renderChats(); renderActive(); save(); };
+        chatList.appendChild(div);
       });
     }
 
-    function openProject(pid){
-      state.active = pid; save();
-      document.getElementById("emptyState").style.display="none";
-      document.getElementById("workspaceContent").style.display="block";
-      renderMarks();
-      renderAIResults();
-    }
-
-    // --- Ideamarks ---
-    document.getElementById("addMarkBtn").onclick = () => {
-      const txt = document.getElementById("newMark").value;
-      if (!txt) return;
-      currentProject().marks.push({id:"mk_"+id(), text:txt});
-      document.getElementById("newMark").value="";
-      save(); renderMarks();
-    };
-
-    function renderMarks(){
-      const wrap = document.getElementById("marks");
-      wrap.innerHTML="";
-      currentProject().marks.forEach(m=>{
-        const chip = document.createElement("div");
-        chip.className="chip"; chip.textContent=m.text;
-        wrap.append(chip);
+    function renderActive(){
+      const c = chats.find(x=>x.id===activeId); if(!c) return;
+      chat.innerHTML="";
+      chatTitle.textContent=c.title;
+      c.messages.filter(m=>m.role!=="system").forEach(m=>{
+        addMessage(m.role==="assistant"?"ai":"user", m.content);
       });
     }
 
-    // --- AI buttons ---
-    document.getElementById("aiNameBtn").onclick = ()=>runAI("name");
-    document.getElementById("aiIdeaBtn").onclick = ()=>runAI("idea");
-    document.getElementById("aiStepsBtn").onclick = ()=>runAI("steps");
-    document.getElementById("runAiBtn").onclick = ()=>runAI("custom");
-
-    async function runAI(kind){
-      const p = currentProject(); if(!p) return;
-      const prompt = document.getElementById("aiPrompt").value || p.dream;
-      const res = await generateWithAI(kind, prompt);
-      p.ai.unshift({kind, content:res}); save(); renderAIResults();
+    function addMessage(role, content){
+      const div = document.createElement("div");
+      div.className="msg "+role; div.textContent=content;
+      chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
     }
 
-    function renderAIResults(){
-      const box = document.getElementById("aiResult");
-      box.innerHTML="";
-      currentProject().ai.forEach(r=>{
-        const div = document.createElement("div");
-        div.className="card"; div.innerHTML=`<b>${r.kind}</b><br/>${r.content}`;
-        box.append(div);
+    async function send(){
+      const text = input.value.trim();
+      if (!text) return;
+      input.value="";
+      const c = chats.find(x=>x.id===activeId); if(!c) return;
+
+      c.messages.push({role:"user", content:text});
+      addMessage("user", text); save();
+
+      const res = await fetch("/api/chat", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ messages:c.messages })
       });
+      const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content || "(no reply)";
+      c.messages.push({role:"assistant", content:reply});
+      addMessage("ai", reply); save();
+
+      // update chat title from first user msg
+      if(c.title==="New Chat"){ c.title = text.slice(0,20); renderChats(); save(); }
     }
 
-    // --- Export/Import/Reset ---
-    document.getElementById("exportBtn").onclick = ()=>{
-      const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download="business.ai.json"; a.click();
-    };
-    document.getElementById("importInput").onchange = (e)=>{
-      const f = e.target.files[0]; if(!f) return;
-      const r = new FileReader();
-      r.onload = ()=>{ state = JSON.parse(r.result); save(); renderProjects(); };
-      r.readAsText(f);
-    };
-    document.getElementById("resetBtn").onclick = ()=>{
-      if(confirm("Clear all data?")){ state={projects:[],active:''}; save(); renderProjects(); }
+    sendBtn.onclick=send;
+    input.addEventListener("keydown", e=>{
+      if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); }
+    });
+
+    document.getElementById("newChat").onclick=newChat;
+    document.getElementById("themeToggle").onclick=()=>{
+      document.body.dataset.theme = document.body.dataset.theme==="light"?"dark":"light";
     };
 
-    // Init
-    renderProjects();
+    if(chats.length===0){ newChat(); } else { activeId=chats[0].id; renderChats(); renderActive(); }
   </script>
 </body>
 </html>
