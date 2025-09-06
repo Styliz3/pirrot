@@ -19,7 +19,7 @@
     }
     header {
       display:flex; justify-content:space-between; align-items:center;
-      padding:12px 24px; background:#111; border-bottom:1px solid #222;
+      padding:12px 20px; background:#111; border-bottom:1px solid #222;
     }
     .brand { font-weight:800; font-size:18px; }
     .btn {
@@ -27,21 +27,19 @@
       background:var(--brand); border:none; color:#fff;
       font-weight:600; cursor:pointer; font-size:14px;
     }
-    main { display:grid; grid-template-columns:280px 1fr; gap:16px; padding:20px; }
-    .card {
-      background:var(--panel); border-radius:12px; padding:16px;
-    }
-    .controls label { font-size:13px; color:var(--muted); margin-top:10px; display:block; }
+    main { display:grid; grid-template-columns:260px 1fr; gap:16px; padding:16px; }
+    .card { background:var(--panel); border-radius:12px; padding:14px; }
+    .controls label { font-size:13px; color:var(--muted); margin-top:8px; display:block; }
     .controls select, .controls button, .controls input {
       width:100%; margin-top:4px; padding:8px 10px;
       border-radius:8px; border:1px solid #333; background:#222; color:#fff;
     }
     .controls .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
-    .player { position:relative; aspect-ratio:9/16; background:#000; border-radius:12px; overflow:hidden; }
-    video { width:100%; height:100%; object-fit:contain; }
-    .captions { position:absolute; bottom:8%; width:100%; text-align:center; }
+    .player { position:relative; width:100%; max-width:360px; margin:auto; background:#000; border-radius:12px; overflow:hidden; }
+    video { width:100%; height:auto; display:block; }
+    .captions { position:absolute; bottom:6%; width:100%; text-align:center; }
     .caption-line {
-      font-size:clamp(18px,5vw,36px);
+      font-size:clamp(16px,4vw,28px);
       font-weight:800;
       color:#fff;
       text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 0 0 8px #000;
@@ -51,11 +49,9 @@
     .timeline div { margin-bottom:4px; padding:4px 6px; border-radius:6px; background:#2a2a2d; }
     pre { font-size:12px; white-space:pre-wrap; color:var(--muted); margin-top:10px; }
   </style>
-  <!-- Transformers.js (UMD build) -->
-  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.0/dist/transformers.umd.min.js"></script>
   <!-- ffmpeg.wasm -->
   <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
-  <!-- Fonts -->
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&family=Anton&family=Poppins:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -75,7 +71,7 @@
 
       <label>Caption font</label>
       <select id="fontFamily">
-        <option value="KomikaAxis,Impact,sans-serif">Komika Axis (Meme)</option>
+        <option value="KomikaAxis,Impact,sans-serif">Komika Axis</option>
         <option value="'Montserrat',sans-serif">Montserrat Bold</option>
         <option value="'Anton',sans-serif">Anton</option>
         <option value="'Poppins',sans-serif">Poppins (TikTok style)</option>
@@ -98,12 +94,14 @@
     </div>
   </main>
 
-<script>
+<script type="module">
+import { pipeline } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.0";
+
 const fileEl=document.getElementById('file'),videoEl=document.getElementById('video'),captionEl=document.getElementById('caption');
 const wordsPerEl=document.getElementById('wordsPer'),emEveryEl=document.getElementById('emEvery'),fontEl=document.getElementById('fontFamily');
 const goBtn=document.getElementById('go'),dlBtn=document.getElementById('downloadVTT'),expBtn=document.getElementById('export');
 const logEl=document.getElementById('log'),tlEl=document.getElementById('timeline');
-let cues=[],lastURL;
+let cues=[],lastURL,asr;
 
 function log(m){logEl.textContent+="\\n"+m;}
 
@@ -135,10 +133,12 @@ function renderTimeline(groups){
   });
 }
 
-let asr;
 async function ensure(){
-  if(asr)return asr;log('Loading model...');const {pipeline}=window.transformers;
-  asr=await pipeline('automatic-speech-recognition','Xenova/whisper-tiny.en');log('Model ready.');return asr;
+  if(asr) return asr;
+  log('Loading Whisper tiny.en model...');
+  asr=await pipeline('automatic-speech-recognition','Xenova/whisper-tiny.en');
+  log('Model ready.');
+  return asr;
 }
 
 async function generate(){
@@ -160,13 +160,12 @@ async function generate(){
 
 goBtn.onclick=()=>generate();
 
-// Hard-burn export with ffmpeg.wasm
 async function exportVideo(file,groups){
-  log('Exporting MP4 with captions... (this may take a while)');
+  log('Exporting MP4 with captions (slow)...');
   const { createFFmpeg, fetchFile } = FFmpeg;const ffmpeg=createFFmpeg({log:true});await ffmpeg.load();
   ffmpeg.FS('writeFile','input.mp4',await fetchFile(file));
   const filter=groups.map(g=>{
-    const safe=g.text.replace(/'/g,"\\'").replace(/:/g,"\\:"); // escape text
+    const safe=g.text.replace(/'/g,"\\'").replace(/:/g,"\\:"); 
     return `drawtext=text='${safe}':fontcolor=white:fontsize=40:borderw=3:enable='between(t,${g.start},${g.end})':x=(w-text_w)/2:y=h-(text_h*3)`;
   }).join(",");
   await ffmpeg.run('-i','input.mp4','-vf',filter,'-c:a','copy','out.mp4');
