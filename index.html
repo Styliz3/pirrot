@@ -1,389 +1,486 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DevPost — Roblox Dev Marketplace</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniFigma Maverick — Crazy UI Lab</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            base: { 900: '#0a0a0b', 800: '#0f0f12', 700: '#141419' },
-          },
-          boxShadow: {
-            soft: '0 8px 30px rgba(0,0,0,0.35)'
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    .glass { background: rgba(20,20,25,0.6); backdrop-filter: blur(10px); }
-    .scrollbar::-webkit-scrollbar{height:8px;width:8px}
-    .scrollbar::-webkit-scrollbar-thumb{background:#2a2a33;border-radius:8px}
+    :root {
+      --bg:#0b0e14; --panel:#111523; --muted:#171c2b; --ink:#e9ecf1; --sub:#aab2c7; --acc:#7c5cff; --green:#21d19f; --red:#ff6b6b;
+      --guide:#5d6a8a; --outline:#a0b4ff;
+    }
+    html,body { height:100%; background:var(--bg); color:var(--ink); font-family: Inter, ui-sans-serif, system-ui; }
+    .glass { background:rgba(255,255,255,0.05); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,0.08); }
+    .btn { border:1px solid #2b3350; background:linear-gradient(180deg,#1a2034,#12162a); padding:.5rem .75rem; border-radius:.7rem; }
+    .btn:hover { border-color:#3a4470; }
+    .toolbar-label { color:var(--sub); font-size:.75rem }
+    .handle { position:absolute; width:10px; height:10px; border:2px solid white; background:var(--acc); border-radius:999px; transform:translate(-50%,-50%); pointer-events:auto; }
+    .canvas-wrap { position:relative; width:100%; height:100%; overflow:scroll; background:radial-gradient(ellipse at top, #0f1426 0%, #0b0e14 35%); }
+    .checker { background-image: linear-gradient(45deg, #1b2136 25%, transparent 25%),
+                               linear-gradient(-45deg, #1b2136 25%, transparent 25%),
+                               linear-gradient(45deg, transparent 75%, #1b2136 75%),
+                               linear-gradient(-45deg, transparent 75%, #1b2136 75%);
+               background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
+    .frame { position:absolute; background:transparent; outline:1px dashed rgba(255,255,255,.15); }
+    .node { position:absolute; box-sizing:border-box; }
+    .node.selected { outline:1px dashed var(--outline); outline-offset:1px; }
+    .guides { position:absolute; inset:0; pointer-events:none; }
+    .guide { position:absolute; border:1px dashed var(--guide); }
+    .safe { border-color: #89a7ff66; }
+    .outline-overlay { position:absolute; inset:0; border:0px solid var(--outline); pointer-events:none; box-sizing:border-box; }
+    .dot { width:8px; height:8px; border-radius:999px; background:var(--outline); position:absolute; }
+    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: #12162a; border:1px solid #293155; padding:.6rem .85rem; border-radius:.7rem; opacity:.95; }
+    .kbar { position: fixed; left: 50%; transform: translateX(-50%); top: 12px; width: min(920px, 92vw); z-index:80; }
+    .kbar input { width:100%; padding: .9rem 1rem; border-radius:.8rem; background: #0e1324; border:1px solid #2c355a; color: var(--ink); }
+    .pill { border:1px solid #2c355a; padding:.2rem .5rem; border-radius:999px; font-size:.75rem; color: var(--sub); }
+    .panel-title { font-size:.75rem; letter-spacing:.08em; text-transform:uppercase; color:#8e97b5; }
+    .x-scroll-shadows { box-shadow: inset 10px 0 10px -10px rgba(0,0,0,.45), inset -10px 0 10px -10px rgba(0,0,0,.45); }
   </style>
 </head>
-<body class="bg-base-900 text-white min-h-screen">
-  <!-- Nav -->
-  <header class="sticky top-0 z-40 border-b border-white/10 bg-base-900/80 backdrop-blur">
-    <div class="mx-auto max-w-7xl px-4 py-3 flex items-center gap-3">
-      <div class="text-xl font-semibold">DevPost</div>
-      <div class="hidden sm:flex items-center gap-2 ml-4 flex-1">
-        <input id="searchInput" placeholder="Search services, users…" class="w-full bg-base-800/80 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" />
-        <button id="searchBtn" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">Search</button>
-      </div>
-      <div class="ml-auto flex items-center gap-3">
-        <button id="newPostBtn" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:opacity-90 transition">New Post</button>
-        <div id="userAvatar" class="flex items-center gap-2"></div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Hero (mobile search) -->
-  <section class="sm:hidden px-4 mt-4">
-    <div class="rounded-2xl p-4 bg-base-800/60">
-      <h1 class="text-2xl font-bold">Find Roblox Devs. Fast.</h1>
-      <div class="mt-3 flex gap-2">
-        <input id="mSearchInput" placeholder="Search services, users…" class="flex-1 bg-base-800/80 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" />
-        <button id="mSearchBtn" class="px-3 py-2 rounded-xl bg-white text-black font-semibold">Go</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Content -->
-  <main class="mx-auto max-w-7xl px-4 py-6">
-    <!-- Onboarding card -->
-    <div id="onboarding" class="hidden rounded-2xl glass border border-white/10 p-6 shadow-soft">
-      <h2 class="text-xl font-semibold mb-2">Get started</h2>
-      <p class="text-white/70 mb-4">Connect your Gmail and pick a public username. Your profile is saved locally to your browser.</p>
-      <div class="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm mb-1">Gmail</label>
-          <input id="emailInput" type="email" placeholder="you@gmail.com" class="w-full bg-base-800 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" />
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Username</label>
-          <input id="usernameInput" placeholder="@builder" class="w-full bg-base-800 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" />
-        </div>
-      </div>
-      <div class="mt-4 flex items-center gap-3">
-        <button id="saveProfileBtn" class="px-4 py-2 rounded-xl bg-white text-black font-semibold">Save</button>
-        <span id="profileStatus" class="text-sm text-white/60"></span>
-      </div>
-    </div>
-
-    <!-- Create Post modal -->
-    <dialog id="postDialog" class="w-full max-w-2xl rounded-2xl bg-base-800 text-white p-0 overflow-hidden">
-      <form method="dialog">
-        <div class="p-5 border-b border-white/10 flex items-center justify-between">
-          <h3 class="text-lg font-semibold">Create a Service Post</h3>
-          <button id="closePostDialog" class="text-white/60 hover:text-white">✕</button>
-        </div>
+<body class="h-full">
+  <!-- Command Bar (F2) -->
+  <div id="kbar" class="kbar hidden">
+    <div class="glass p-3 rounded-xl">
+      <div class="flex items-center gap-2 mb-2"><span class="pill">F2</span><span class="text-sm text-slate-300">Type a UI prompt, or drop an image → enter</span></div>
+      <form id="kbar-form" class="flex items-center gap-2">
+        <input id="prompt" placeholder="e.g. dashboard with left nav, cards, chart, CTA button" />
+        <input id="kbar-file" type="file" accept="image/*" class="hidden" />
+        <button type="button" id="attachBtn" class="btn">Attach Image</button>
+        <button class="btn">Generate</button>
       </form>
-      <div class="p-5 space-y-4">
-        <div>
-          <label class="block text-sm mb-1">Service Name</label>
-          <input id="postTitle" class="w-full bg-base-700 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" maxlength="80" />
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Description</label>
-          <textarea id="postDesc" class="w-full bg-base-700 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20 min-h-[120px]" maxlength="4000"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Image URLs (min 2)</label>
-          <div class="space-y-2" id="imagesList"></div>
-          <button id="addImage" class="mt-2 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20">+ Add image</button>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm mb-1">Portfolio (optional)</label>
-            <input id="portfolio" placeholder="https://…" class="w-full bg-base-700 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Discord Contact</label>
-            <input id="contact" placeholder="username#1234 or @handle" class="w-full bg-base-700 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Other Socials (optional)</label>
-          <input id="socialX" placeholder="X/Twitter URL" class="w-full bg-base-700 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20 mb-2" />
-          <input id="socialYT" placeholder="YouTube URL" class="w-full bg-base-700 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20 mb-2" />
-          <input id="socialGH" placeholder="GitHub URL" class="w-full bg-base-700 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-white/20" />
-        </div>
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-sm text-white/60">New posts go <span class="font-semibold text-white">On Hold</span> until a moderator approves.</p>
-          <button id="submitPost" class="px-4 py-2 rounded-xl bg-white text-black font-semibold">Submit</button>
-        </div>
-        <p id="postError" class="text-sm text-red-400"></p>
-      </div>
-    </dialog>
+    </div>
+  </div>
 
-    <!-- Feed header -->
-    <div class="mt-6 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Top Services</h2>
-      <div class="flex items-center gap-2 text-sm">
-        <label class="opacity-70">Order</label>
-        <select id="orderSelect" class="bg-base-800 rounded-lg px-2 py-1">
-          <option value="top">Top</option>
-          <option value="new">Newest</option>
+  <!-- Top Toolbar -->
+  <div class="sticky top-0 z-50 w-full x-scroll-shadows backdrop-blur border-b border-white/5" style="background:linear-gradient(180deg,rgba(17,21,35,.8),rgba(17,21,35,.55));">
+    <div class="max-w![1600px] mx-auto px-4 py-2 flex items-center gap-3">
+      <div class="font-extrabold tracking-tight text-lg">MiniFigma <span class="text-xs text-slate-400 font-semibold">Maverick</span></div>
+      <button id="newFrame" class="btn">New Frame</button>
+      <label class="btn cursor-pointer">
+        <input type="file" id="uploadAssets" accept="image/*" multiple class="hidden" /> Upload Assets
+      </label>
+      <div class="flex items-center gap-3 ml-4">
+        <div>
+          <div class="toolbar-label">Fill</div>
+          <input type="color" id="fillColor" value="#5b8cff" />
+        </div>
+        <div>
+          <div class="toolbar-label">Stroke</div>
+          <input type="color" id="strokeColor" value="#141824" />
+        </div>
+        <div>
+          <div class="toolbar-label">Stroke px</div>
+          <input type="range" id="strokeSize" min="0" max="24" value="2" />
+        </div>
+        <div>
+          <div class="toolbar-label">Radius</div>
+          <input type="range" id="cornerRadius" min="0" max="64" value="12" />
+        </div>
+        <div>
+          <div class="toolbar-label">Opacity</div>
+          <input type="range" id="opacity" min="0" max="100" value="100" />
+        </div>
+        <label class="flex items-center gap-2 mt-5 select-none"><input id="shadow" type="checkbox" class="scale-125" /> <span class="toolbar-label">Shadow</span></label>
+      </div>
+
+      <div class="ml-auto flex items-center gap-2">
+        <button id="cameraMode" class="btn">Camera Mode</button>
+        <select id="devicePreset" class="glass px-3 py-2 rounded-md border border-white/10">
+          <option value="1080x1080">1080×1080</option>
+          <option value="1920x1080" selected>1920×1080 (FHD)</option>
+          <option value="2560x1440">2560×1440 (QHD)</option>
+          <option value="3840x2160">3840×2160 (4K)</option>
+          <option value="1080x1920">1080×1920 (Story)</option>
         </select>
+        <select id="pixelDensity" class="glass px-3 py-2 rounded-md border border-white/10">
+          <option value="1">1×</option>
+          <option value="2" selected>2×</option>
+          <option value="3">3×</option>
+        </select>
+        <input type="number" id="outlinePx" class="glass px-2 py-2 rounded-md border border-white/10 w-24" value="0" min="0" max="64" placeholder="Outline px" />
+        <label class="flex items-center gap-2 select-none"><input id="bgToggle" type="checkbox" class="scale-125" checked/> <span class="toolbar-label">Background</span></label>
+        <button id="exportBtn" class="btn">Export PNG</button>
       </div>
     </div>
+  </div>
 
-    <!-- Feed grid -->
-    <div id="feed" class="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  <!-- Main -->
+  <div class="grid grid-cols-[280px_1fr_320px] gap-3 px-3 h-[calc(100%-60px)]">
+    <!-- Assets Panel -->
+    <aside class="glass rounded-xl p-3 overflow-auto">
+      <div class="panel-title mb-3">Assets</div>
+      <div id="assets" class="grid grid-cols-2 gap-3"></div>
+    </aside>
 
-    <footer class="mt-16 pb-10 text-center text-white/40 text-sm">DevPost • Make cool things • Be kind</footer>
-  </main>
-
-  <!-- Moderation Panel (F2) -->
-  <dialog id="modDialog" class="w-full max-w-5xl rounded-2xl bg-base-800 text-white p-0 overflow-hidden">
-    <div class="p-5 border-b border-white/10 flex items-center justify-between">
-      <h3 class="text-lg font-semibold">Moderation Panel</h3>
-      <button id="closeModDialog" class="text-white/60 hover:text-white">✕</button>
-    </div>
-    <div class="p-5 space-y-4">
-      <div class="flex items-center gap-2">
-        <input id="modCode" placeholder="Access code" class="bg-base-700 rounded-xl px-3 py-2" />
-        <button id="modAuthBtn" class="px-3 py-2 rounded-xl bg-white text-black font-semibold">Unlock</button>
+    <!-- Canvas Area -->
+    <main class="glass rounded-xl p-2">
+      <div id="canvasWrap" class="canvas-wrap rounded-lg checker">
+        <div id="frame" class="frame" style="left:160px; top:120px; width:1200px; height:700px;">
+          <div class="guides" id="guides"></div>
+          <div class="outline-overlay" id="outlineOverlay"></div>
+        </div>
       </div>
-      <div class="grid md:grid-cols-3 gap-4">
-        <section class="md:col-span-2">
-          <h4 class="font-semibold mb-2">On Hold Posts</h4>
-          <div id="holdList" class="space-y-3"></div>
-        </section>
-        <aside>
-          <h4 class="font-semibold mb-2">Search / Reports</h4>
-          <div class="space-y-2">
-            <input id="modSearch" placeholder="Search posts or users…" class="w-full bg-base-700 rounded-xl px-3 py-2" />
-            <button id="modSearchBtn" class="w-full px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">Search</button>
-          </div>
-          <div class="mt-4">
-            <h5 class="font-semibold mb-1">Recent Reports</h5>
-            <div id="reportList" class="space-y-2"></div>
-          </div>
-        </aside>
-      </div>
-    </div>
-  </dialog>
+    </main>
 
-  <template id="imageInputTpl">
-    <div class="flex items-center gap-2">
-      <input placeholder="https://image.url" class="flex-1 bg-base-700 rounded-xl px-3 py-2" />
-      <button class="removeImg px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20">✕</button>
-    </div>
-  </template>
+    <!-- Inspector / Layers -->
+    <aside class="glass rounded-xl p-3 overflow-auto">
+      <div class="panel-title mb-2">Layers</div>
+      <div id="layers" class="space-y-1"></div>
+      <hr class="my-4 border-white/10" />
+      <div class="panel-title mb-2">Selection</div>
+      <div id="selectionPanel" class="text-sm text-slate-300">No selection</div>
+    </aside>
+  </div>
 
-  <script>
-    // --- Local profile ---
-    const state = {
-      profile: JSON.parse(localStorage.getItem('devpost_profile') || 'null'),
-      modToken: null,
-    };
+  <div id="toast" class="toast hidden"></div>
 
-    const onboarding = document.getElementById('onboarding');
-    const userAvatar = document.getElementById('userAvatar');
-    const newPostBtn = document.getElementById('newPostBtn');
+<script>
+// ====== State ======
+const state = {
+  assets: [], // {id, name, dataURL, w, h}
+  nodes: [],  // {id, type:'rect'|'image'|'text', x,y,w,h, r, fill, stroke, strokeSize, opacity, shadow, src?, text?, font?, align?}
+  sel: null,  // selected node id
+  dragging: null,
+  resizing: null,
+  frame: { x:160, y:120, w:1200, h:700, bg:'#12162a' },
+  cameraMode:false,
+  outlinePx:0,
+};
 
-    function renderProfile() {
-      userAvatar.innerHTML = '';
-      if (!state.profile) {
-        onboarding.classList.remove('hidden');
-        userAvatar.innerHTML = `<button class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20" id="openOnboarding">Sign in</button>`;
-        document.getElementById('openOnboarding').onclick = () => onboarding.scrollIntoView({behavior:'smooth'});
-        return;
+const gid = ()=>'id_'+Math.random().toString(36).slice(2,9);
+
+// ====== DOM ======
+const frameEl = document.getElementById('frame');
+const guidesEl = document.getElementById('guides');
+const layersEl = document.getElementById('layers');
+const assetsEl = document.getElementById('assets');
+const selectionPanel = document.getElementById('selectionPanel');
+const outlineOverlay = document.getElementById('outlineOverlay');
+
+// ====== Helpers ======
+function toast(msg, ms=1600){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), ms); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+function applyNodeStyles(el,node){
+  el.style.left = node.x + 'px';
+  el.style.top = node.y + 'px';
+  el.style.width = node.w + 'px';
+  el.style.height = node.h + 'px';
+  el.style.opacity = (node.opacity ?? 100)/100;
+  el.style.borderRadius = (node.r||0)+'px';
+  el.style.boxShadow = node.shadow ? '0 10px 30px rgba(0,0,0,.35)' : 'none';
+  if(node.type==='rect' || node.type==='text'){
+    el.style.background = node.type==='rect' ? (node.fill||'#5b8cff') : 'transparent';
+    el.style.border = (node.strokeSize||0)+'px solid '+(node.stroke||'transparent');
+    if(node.type==='text'){
+      el.style.color = node.fill || '#e9ecf1';
+      el.style.display='flex'; el.style.alignItems='center'; el.style.justifyContent='center';
+      el.style.font = node.font || '600 24px Inter';
+      el.style.textAlign = node.align || 'center';
+      el.textContent = node.text || 'Text';
+    }
+  }
+  if(node.type==='image'){
+    el.style.background = 'transparent';
+    el.style.border = (node.strokeSize||0)+'px solid '+(node.stroke||'transparent');
+    el.style.overflow='hidden';
+    let img = el.querySelector('img');
+    if(!img){ img = new Image(); img.draggable=false; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; el.appendChild(img); }
+    img.src = node.src;
+    img.style.borderRadius=(node.r||0)+'px';
+  }
+}
+
+function render(){
+  // frame
+  frameEl.style.left = state.frame.x+'px';
+  frameEl.style.top = state.frame.y+'px';
+  frameEl.style.width = state.frame.w+'px';
+  frameEl.style.height = state.frame.h+'px';
+  frameEl.style.background = document.getElementById('bgToggle').checked ? state.frame.bg : 'transparent';
+  // nodes
+  frameEl.querySelectorAll('.node').forEach(n=>n.remove());
+  for(const node of state.nodes){
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.dataset.id = node.id;
+    applyNodeStyles(el,node);
+    if(state.sel===node.id) el.classList.add('selected');
+
+    // drag/select
+    el.addEventListener('pointerdown',(e)=>{
+      state.sel=node.id; updateInspector();
+      state.dragging={ id:node.id, ox:e.clientX - node.x, oy:e.clientY - node.y };
+      (e.target).setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove',(e)=>{
+      if(state.dragging && state.dragging.id===node.id){
+        node.x = e.clientX - state.dragging.ox;
+        node.y = e.clientY - state.dragging.oy;
+        applyNodeStyles(el,node);
+        updateLayers();
       }
-      onboarding.classList.add('hidden');
-      userAvatar.innerHTML = `
-        <div class="px-3 py-2 rounded-xl bg-base-800 text-sm">
-          <span class="opacity-60">Signed in as</span> <span class="font-semibold">${state.profile.username}</span>
-        </div>`;
-    }
+    });
+    el.addEventListener('pointerup',()=>{ state.dragging=null; });
 
-    document.getElementById('saveProfileBtn').onclick = () => {
-      const email = document.getElementById('emailInput').value.trim();
-      const username = document.getElementById('usernameInput').value.trim();
-      if (!email || !username) { document.getElementById('profileStatus').textContent = 'Email and username required'; return; }
-      state.profile = { email, username };
-      localStorage.setItem('devpost_profile', JSON.stringify(state.profile));
-      document.getElementById('profileStatus').textContent = 'Saved!';
-      renderProfile();
-    };
+    // resize handles
+    ['se','ne','sw','nw'].forEach(pos=>{
+      const h=document.createElement('div'); h.className='handle';
+      const x = pos.includes('e')?1:0, y = pos.includes('s')?1:0;
+      h.style.left = (x?node.w:0)+'px'; h.style.top=(y?node.h:0)+'px';
+      h.addEventListener('pointerdown',(e)=>{
+        e.stopPropagation(); state.resizing={id:node.id,pos, sx:node.w, sy:node.h, ax:e.clientX, ay:e.clientY, ox:node.x, oy:node.y}; h.setPointerCapture(e.pointerId);
+      });
+      h.addEventListener('pointermove',(e)=>{
+        if(!state.resizing||state.resizing.id!==node.id) return;
+        const dx=e.clientX-state.resizing.ax, dy=e.clientY-state.resizing.ay;
+        if(pos==='se'){ node.w=clamp(state.resizing.sx+dx, 10, 10000); node.h=clamp(state.resizing.sy+dy, 10, 10000); }
+        if(pos==='nw'){ const nw=clamp(state.resizing.sx-dx,10,10000); const nh=clamp(state.resizing.sy-dy,10,10000); node.x=state.resizing.ox+(node.w-nw); node.y=state.resizing.oy+(node.h-nh); node.w=nw; node.h=nh; }
+        if(pos==='ne'){ const nw=clamp(state.resizing.sx+dx,10,10000); const nh=clamp(state.resizing.sy-dy,10,10000); node.y=state.resizing.oy+(node.h-nh); node.w=nw; node.h=nh; }
+        if(pos==='sw'){ const nw=clamp(state.resizing.sx-dx,10,10000); const nh=clamp(state.resizing.sy+dy,10,10000); node.x=state.resizing.ox+(node.w-nw); node.w=nw; node.h=nh; }
+        applyNodeStyles(el,node); updateLayers();
+      });
+      h.addEventListener('pointerup',()=> state.resizing=null);
+      el.appendChild(h);
+    });
 
-    renderProfile();
+    frameEl.appendChild(el);
+  }
 
-    // --- Post dialog logic ---
-    const postDialog = document.getElementById('postDialog');
-    const imagesList = document.getElementById('imagesList');
-    const imageTpl = document.getElementById('imageInputTpl');
+  // guides + outline
+  drawGuides();
+  updateLayers();
+}
 
-    function addImageInput(value=''){
-      const node = imageTpl.content.cloneNode(true);
-      const input = node.querySelector('input');
-      input.value = value;
-      node.querySelector('.removeImg').onclick = (e) => { e.preventDefault(); e.target.parentElement.remove(); };
-      imagesList.appendChild(node);
-    }
+function drawGuides(){
+  const g = guidesEl; g.innerHTML='';
+  const preset = document.getElementById('devicePreset').value.split('x').map(Number);
+  const scaleW = state.frame.w / preset[0];
+  const scaleH = state.frame.h / preset[1];
+  // safe area 5%
+  const safeX = state.frame.w*0.05, safeY = state.frame.h*0.05;
+  const safe = div('guide safe'); safe.style.left=safeX+'px'; safe.style.top=safeY+'px'; safe.style.width=(state.frame.w-safeX*2)+'px'; safe.style.height=(state.frame.h-safeY*2)+'px'; g.appendChild(safe);
+  // thirds
+  for(let i=1;i<=2;i++){
+    const v=div('guide'); v.style.left=(state.frame.w*i/3)+'px'; v.style.top='0'; v.style.height='100%'; v.style.width='0'; v.style.borderLeft='1px dashed var(--guide)'; g.appendChild(v);
+    const h=div('guide'); h.style.top=(state.frame.h*i/3)+'px'; h.style.left='0'; h.style.width='100%'; h.style.height='0'; h.style.borderTop='1px dashed var(--guide)'; g.appendChild(h);
+  }
+  // outline overlay
+  const px = parseInt(document.getElementById('outlinePx').value||'0',10);
+  outlineOverlay.style.borderWidth = px+'px';
+}
 
-    document.getElementById('addImage').onclick = (e)=>{ e.preventDefault(); addImageInput(''); };
-    addImageInput(''); addImageInput('');
+function div(cls){ const d=document.createElement('div'); d.className=cls; return d; }
 
-    newPostBtn.onclick = () => {
-      if (!state.profile) { onboarding.scrollIntoView({behavior:'smooth'}); return; }
-      postDialog.showModal();
-    };
-    document.getElementById('closePostDialog').onclick = ()=> postDialog.close();
+function updateLayers(){
+  layersEl.innerHTML='';
+  [...state.nodes].reverse().forEach((n,i)=>{
+    const row=document.createElement('div');
+    row.className='flex items-center gap-2 text-sm hover:bg-white/5 rounded px-2 py-1 cursor-pointer';
+    row.innerHTML=`<span class="text-slate-400">${n.type}</span> <span class="text-slate-300">${n.w}×${n.h}</span>`;
+    row.addEventListener('click',()=>{ state.sel=n.id; render(); updateInspector(); });
+    layersEl.appendChild(row);
+  });
+}
 
-    document.getElementById('submitPost').onclick = async () => {
-      const title = document.getElementById('postTitle').value.trim();
-      const description = document.getElementById('postDesc').value.trim();
-      const portfolio = document.getElementById('portfolio').value.trim();
-      const contact = document.getElementById('contact').value.trim();
-      const socials = { x: document.getElementById('socialX').value.trim(), youtube: document.getElementById('socialYT').value.trim(), github: document.getElementById('socialGH').value.trim(), discord: contact };
-      const images = [...imagesList.querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean);
-      const err = document.getElementById('postError');
-      err.textContent='';
-      if (images.length < 2) { err.textContent = 'At least 2 images required'; return; }
-      if (title.length < 3 || description.length < 20) { err.textContent = 'Please provide a longer title/description'; return; }
-      try{
-        const res = await fetch('/api/api.js?route=create_post', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-          author: state.profile, title, description, images, portfolio, socials, contact
-        })});
-        if (!res.ok) throw new Error(await res.text());
-        postDialog.close();
-        loadFeed();
-        alert('Submitted! Your post is on hold for moderation.');
-      }catch(e){ err.textContent = e.message || 'Failed to submit'; }
-    };
+function updateInspector(){
+  const n = state.nodes.find(x=>x.id===state.sel);
+  if(!n){ selectionPanel.textContent='No selection'; return; }
+  selectionPanel.innerHTML = `
+    <div class="grid grid-cols-2 gap-2">
+      <label class="text-xs text-slate-400">X<input id="i-x" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.x)}"/></label>
+      <label class="text-xs text-slate-400">Y<input id="i-y" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.y)}"/></label>
+      <label class="text-xs text-slate-400">W<input id="i-w" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.w)}"/></label>
+      <label class="text-xs text-slate-400">H<input id="i-h" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${Math.round(n.h)}"/></label>
+      <label class="text-xs text-slate-400">Radius<input id="i-r" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${n.r||0}"/></label>
+      <label class="text-xs text-slate-400">Stroke<input id="i-stk" class="glass w-full px-2 py-1 rounded border border-white/10" type="number" value="${n.strokeSize||0}"/></label>
+      <label class="text-xs text-slate-400">Fill<input id="i-fill" class="glass w-full px-2 py-1 rounded border border-white/10" type="color" value="${n.fill||'#5b8cff'}"/></label>
+      <label class="text-xs text-slate-400">Stroke Color<input id="i-str" class="glass w-full px-2 py-1 rounded border border-white/10" type="color" value="${n.stroke||'#141824'}"/></label>
+      <label class="text-xs text-slate-400">Opacity<input id="i-op" class="glass w-full px-2 py-1 rounded border border-white/10" type="range" min="0" max="100" value="${n.opacity??100}"/></label>
+      ${n.type==='text'?`<label class="text-xs text-slate-400 col-span-2">Text<input id="i-text" class="glass w-full px-2 py-1 rounded border border-white/10" value="${n.text||''}"/></label>`:''}
+    </div>`;
+  // bind
+  ['i-x','i-y','i-w','i-h','i-r','i-stk','i-fill','i-str','i-op','i-text'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.addEventListener('input',()=>{
+      if(id==='i-x') n.x=parseInt(el.value,10)||0; if(id==='i-y') n.y=parseInt(el.value,10)||0;
+      if(id==='i-w') n.w=parseInt(el.value,10)||0; if(id==='i-h') n.h=parseInt(el.value,10)||0;
+      if(id==='i-r') n.r=parseInt(el.value,10)||0; if(id==='i-stk') n.strokeSize=parseInt(el.value,10)||0;
+      if(id==='i-fill') n.fill=el.value; if(id==='i-str') n.stroke=el.value; if(id==='i-op') n.opacity=parseInt(el.value,10)||0;
+      if(id==='i-text') n.text=el.value;
+      render();
+    });
+  });
+}
 
-    // --- Feed render ---
-    const feed = document.getElementById('feed');
-    const orderSelect = document.getElementById('orderSelect');
+// ====== Asset Uploads ======
+const uploadAssets = document.getElementById('uploadAssets');
+uploadAssets.addEventListener('change', async (e)=>{
+  const files=[...e.target.files];
+  for(const f of files){
+    const url = await readAsDataURL(f);
+    const img = await loadImg(url);
+    const a={id:gid(), name:f.name, dataURL:url, w:img.width, h:img.height};
+    state.assets.push(a); addAssetThumb(a);
+  }
+  toast('Assets added');
+});
+function addAssetThumb(a){
+  const item=document.createElement('div'); item.className='relative group';
+  item.innerHTML=`<img src="${a.dataURL}" class="w-full h-24 object-cover rounded-lg border border-white/10" draggable="true" />
+  <div class='absolute bottom-1 left-1 text![10px] bg-black/50 px-1 rounded'>${a.w}×${a.h}</div>`;
+  item.addEventListener('dragstart',(ev)=>{ ev.dataTransfer.setData('text/plain', a.id); });
+  assetsEl.appendChild(item);
+}
 
-    async function loadFeed(q=''){
-      const order = orderSelect.value;
-      const res = await fetch(`/api/api.js?route=list_posts&q=${encodeURIComponent(q)}&order=${order}`);
-      const posts = await res.json();
-      feed.innerHTML = '';
-      if (!posts.length){ feed.innerHTML = '<div class="text-white/60">No posts yet.</div>'; return; }
-      for (const p of posts){
-        const card = document.createElement('div');
-        card.className = 'rounded-2xl bg-base-800/60 border border-white/10 shadow-soft overflow-hidden hover:-translate-y-0.5 transition transform';
-        card.innerHTML = `
-          <div class="relative">
-            <div class="flex gap-2 overflow-x-auto scrollbar p-2 bg-black/20">
-              ${p.images.map(url=>`<img src="${url}" alt="" class="h-40 w-64 object-cover rounded-xl" onerror="this.style.display='none'"/>`).join('')}
-            </div>
-            <div class="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs ${p.status==='APPROVED'?'bg-green-500/20 text-green-300':'bg-yellow-500/20 text-yellow-300'}">${p.status.replace('_',' ')}</div>
-          </div>
-          <div class="p-4 space-y-2">
-            <div class="flex items-center justify-between gap-2">
-              <h3 class="font-semibold text-lg">${p.title}</h3>
-              <div class="text-sm opacity-80">⭐ ${p.author.ratingAverage.toFixed(1)} · ${p.author.ratingCount}</div>
-            </div>
-            <p class="text-white/70 line-clamp-3">${p.description}</p>
-            <div class="flex items-center gap-2 text-sm text-white/70 flex-wrap">
-              <span>@${p.author.username}</span>
-              ${p.portfolio ? `<a href="${p.portfolio}" target="_blank" class="underline">Portfolio</a>`: ''}
-              ${p.contact ? `<span>Discord: ${p.contact}</span>`: ''}
-            </div>
-            <div class="flex items-center gap-2">
-              <button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20" data-action="rate" data-id="${p.author.id}">Rate</button>
-              ${state.profile && state.profile.email === p.author.email ? `<button class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20" data-action="delete" data-id="${p.id}">Delete</button>`: ''}
-              <button class="ml-auto px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20" data-action="report" data-id="${p.id}">Report</button>
-            </div>
-          </div>`;
-        card.addEventListener('click', async (e)=>{
-          const btn = e.target.closest('button');
-          if (!btn) return;
-          const action = btn.dataset.action;
-          if (action==='delete'){
-            if (!confirm('Delete this post?')) return;
-            const res = await fetch(`/api/api.js?route=delete_post&id=${btn.dataset.id}`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ author: state.profile })});
-            if (res.ok){ loadFeed(); } else { alert(await res.text()); }
-          }
-          if (action==='rate'){
-            const value = +prompt('Rate this user 1-5');
-            if (!value || value<1 || value>5) return;
-            await fetch('/api/api.js?route=rate_user', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ from: state.profile, toEmail: p.author.email, value })});
-            loadFeed();
-          }
-          if (action==='report'){
-            const reason = prompt('Reason for report?');
-            if (!reason) return;
-            await fetch('/api/api.js?route=report', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ reporter: state.profile, targetType:'POST', targetId: p.id, reason })});
-            alert('Reported. Thanks.');
-          }
-        });
-        feed.appendChild(card);
+frameEl.addEventListener('dragover',e=>{ e.preventDefault(); });
+frameEl.addEventListener('drop',e=>{
+  e.preventDefault(); const id=e.dataTransfer.getData('text/plain'); const a=state.assets.find(x=>x.id===id); if(!a) return;
+  const rect=frameEl.getBoundingClientRect();
+  const n={ id:gid(), type:'image', x:e.clientX-rect.left-120, y:e.clientY-rect.top-80, w:Math.min(240,a.w), h:Math.min(160,a.h), r:12, src:a.dataURL, stroke:'#141824', strokeSize:0, opacity:100, shadow:false };
+  state.nodes.push(n); state.sel=n.id; render(); updateInspector();
+});
+
+// ====== Toolbar Bindings ======
+document.getElementById('newFrame').addEventListener('click',()=>{
+  state.frame.x=160; state.frame.y=120; state.frame.w=1200; state.frame.h=700; render();
+});
+['fillColor','strokeColor','strokeSize','cornerRadius','opacity','shadow'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{
+    const n = state.nodes.find(x=>x.id===state.sel); if(!n) return;
+    if(id==='fillColor') n.fill=document.getElementById('fillColor').value;
+    if(id==='strokeColor') n.stroke=document.getElementById('strokeColor').value;
+    if(id==='strokeSize') n.strokeSize=parseInt(document.getElementById('strokeSize').value,10);
+    if(id==='cornerRadius') n.r=parseInt(document.getElementById('cornerRadius').value,10);
+    if(id==='opacity') n.opacity=parseInt(document.getElementById('opacity').value,10);
+    if(id==='shadow') n.shadow=document.getElementById('shadow').checked;
+    render(); updateInspector();
+  });
+});
+
+// ====== Keyboard / Command Bar ======
+const kbar = document.getElementById('kbar');
+window.addEventListener('keydown',(e)=>{
+  if(e.key==='F2'){ e.preventDefault(); kbar.classList.toggle('hidden'); document.getElementById('prompt').focus(); }
+  if(e.key==='Delete' || e.key==='Backspace'){ if(state.sel){ state.nodes=state.nodes.filter(n=>n.id!==state.sel); state.sel=null; render(); updateInspector(); }}
+});
+
+// Command bar form
+const kbarForm=document.getElementById('kbar-form');
+kbarForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const prompt = document.getElementById('prompt').value.trim();
+  const fileEl = document.getElementById('kbar-file');
+  let imageData=null;
+  if(fileEl.files && fileEl.files[0]){ imageData = await readAsDataURL(fileEl.files[0]); }
+  toast('Calling Maverick to build your layout...');
+  try{
+    const res = await fetch('/api/api', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ prompt, imageData, assets: state.assets.map(a=>({name:a.name, width:a.w, height:a.h})) }) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Groq error');
+    // Expect data.nodes: array of node specs
+    if(Array.isArray(data.nodes)){
+      for(const nn of data.nodes){
+        const node={ id:gid(), type: nn.type||'rect', x:nn.x||20, y:nn.y||20, w:nn.w||160, h:nn.h||90, r:nn.r||12, fill:nn.fill||'#5b8cff', stroke:nn.stroke||'#141824', strokeSize:nn.strokeSize||0, opacity:nn.opacity??100, shadow:!!nn.shadow };
+        if(node.type==='text') node.text = nn.text||'Text';
+        if(node.type==='image'){
+          const idx = typeof nn.srcIndex==='number' ? nn.srcIndex : 0;
+          node.src = state.assets[idx]?.dataURL || state.assets[0]?.dataURL;
+        }
+        state.nodes.push(node);
       }
+      render(); updateInspector(); toast('Layout generated!');
+    } else { toast('No nodes from AI. Try a different prompt.'); }
+  }catch(err){ console.error(err); toast('AI error: '+err.message); }
+});
+
+// Attach image button
+const attachBtn=document.getElementById('attachBtn');
+attachBtn.addEventListener('click',()=> document.getElementById('kbar-file').click());
+
+// ====== Camera Mode & Outlines ======
+const cameraBtn=document.getElementById('cameraMode');
+cameraBtn.addEventListener('click',()=>{ state.cameraMode=!state.cameraMode; cameraBtn.textContent= state.cameraMode ? 'Exit Camera' : 'Camera Mode'; document.getElementById('canvasWrap').style.background = state.cameraMode? '#0b0e14': 'radial-gradient(ellipse at top, #0f1426 0%, #0b0e14 35%)'; render(); });
+['devicePreset','pixelDensity','outlinePx','bgToggle'].forEach(id=> document.getElementById(id).addEventListener('input',()=>{ render(); }));
+
+// ====== Export (PNG, with/without background, outline baked) ======
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  const [tw,th] = document.getElementById('devicePreset').value.split('x').map(Number);
+  const density = parseInt(document.getElementById('pixelDensity').value,10);
+  const W = tw * density, H = th * density;
+  const includeBg = document.getElementById('bgToggle').checked;
+  const outlinePx = parseInt(document.getElementById('outlinePx').value||'0',10) * density;
+
+  const can = document.createElement('canvas'); can.width=W; can.height=H; const ctx=can.getContext('2d');
+  if(includeBg){ ctx.fillStyle = state.frame.bg; ctx.fillRect(0,0,W,H); }
+
+  // scale nodes from frame to export size
+  const sx = W / state.frame.w; const sy = H / state.frame.h;
+
+  // draw nodes
+  for(const n of state.nodes){
+    const x=n.x*sx, y=n.y*sy, w=n.w*sx, h=n.h*sy, r=(n.r||0)*((sx+sy)/2);
+    ctx.globalAlpha = (n.opacity??100)/100;
+    if(n.type==='rect'){
+      roundRect(ctx, x, y, w, h, r);
+      if(n.fill){ ctx.fillStyle=n.fill; ctx.fill(); }
+      if((n.strokeSize||0)>0){ ctx.lineWidth=(n.strokeSize||0)*((sx+sy)/2); ctx.strokeStyle=n.stroke||'transparent'; ctx.stroke(); }
+      if(n.shadow){ ctx.save(); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=30*((sx+sy)/2); ctx.shadowOffsetY=10*((sx+sy)/2); roundRect(ctx, x, y, w, h, r); ctx.fillStyle='rgba(0,0,0,.001)'; ctx.fill(); ctx.restore(); }
+    } else if(n.type==='image'){
+      const img = await loadImg(n.src);
+      ctx.save();
+      roundRect(ctx, x, y, w, h, r); ctx.clip();
+      ctx.drawImage(img, 0,0, img.width, img.height, x, y, w, h);
+      ctx.restore();
+      if((n.strokeSize||0)>0){ ctx.lineWidth=(n.strokeSize||0)*((sx+sy)/2); ctx.strokeStyle=n.stroke||'transparent'; roundRect(ctx, x, y, w, h, r); ctx.stroke(); }
+    } else if(n.type==='text'){
+      ctx.save();
+      ctx.fillStyle = n.fill||'#e9ecf1';
+      const fs = 24*((sx+sy)/2);
+      ctx.font = n.font || `600 ${fs}px Inter`;
+      ctx.textAlign = n.align || 'center';
+      ctx.textBaseline='middle';
+      ctx.fillText(n.text||'Text', x+w/2, y+h/2);
+      ctx.restore();
     }
+  }
 
-    loadFeed();
+  // outline stroke on export
+  if(outlinePx>0){
+    ctx.save(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = outlinePx; ctx.strokeRect(outlinePx/2, outlinePx/2, W-outlinePx, H-outlinePx); ctx.restore();
+  }
 
-    // search
-    const searchInput = document.getElementById('searchInput');
-    document.getElementById('searchBtn').onclick = ()=> loadFeed(searchInput.value.trim());
-    document.getElementById('mSearchBtn').onclick = ()=> loadFeed(document.getElementById('mSearchInput').value.trim());
+  const url = can.toDataURL('image/png');
+  downloadURL(url, `minifigma-${tw}x${th}-${density}x.png`);
+});
 
-    // --- Moderation Panel ---
-    const modDialog = document.getElementById('modDialog');
-    window.addEventListener('keydown', (e)=>{ if (e.key==='F2'){ modDialog.showModal(); }});
-    document.getElementById('closeModDialog').onclick = ()=> modDialog.close();
+function roundRect(ctx, x, y, w, h, r){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.lineTo(x+w-rr, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+  ctx.lineTo(x+w, y+h-rr);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+  ctx.lineTo(x+rr, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+  ctx.lineTo(x, y+rr);
+  ctx.quadraticCurveTo(x, y, x+rr, y);
+  ctx.closePath();
+}
 
-    document.getElementById('modAuthBtn').onclick = async ()=>{
-      const code = document.getElementById('modCode').value.trim();
-      if (!code) return;
-      state.modToken = code; // naive demo — send as header
-      await loadHold();
-      await loadReports();
-    };
+// ====== Utils ======
+function readAsDataURL(file){ return new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file); }); }
+function loadImg(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.crossOrigin='anonymous'; i.src=src; }); }
+function downloadURL(dataUrl, filename){ const a=document.createElement('a'); a.href=dataUrl; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); }
 
-    async function loadHold(){
-      const res = await fetch('/api/api.js?route=list_hold', { headers: { 'x-mod-code': state.modToken || '' }});
-      if (!res.ok){ document.getElementById('holdList').innerHTML = '<div class="text-red-400 text-sm">Unauthorized</div>'; return; }
-      const posts = await res.json();
-      const wrap = document.getElementById('holdList');
-      wrap.innerHTML = '';
-      for (const p of posts){
-        const div = document.createElement('div');
-        div.className = 'rounded-xl bg-base-900/60 border border-white/10 p-3';
-        div.innerHTML = `
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">${p.title}</div>
-            <div class="text-sm opacity-70">@${p.author.username}</div>
-          </div>
-          <p class="text-white/70 mt-1 line-clamp-2">${p.description}</p>
-          <div class="flex gap-2 mt-2 overflow-x-auto scrollbar">${p.images.map(u=>`<img src="${u}" class="h-16 w-24 object-cover rounded-lg">`).join('')}</div>
-          <div class="mt-2 flex items-center gap-2">
-            <button class="approve px-3 py-1.5 rounded-lg bg-green-500/20">Approve</button>
-            <button class="reject px-3 py-1.5 rounded-lg bg-red-500/20">Reject</button>
-          </div>`;
-        div.querySelector('.approve').onclick = async ()=>{ await moderate(p.id, 'approve'); };
-        div.querySelector('.reject').onclick = async ()=>{
-          const reason = prompt('Reason?');
-          await moderate(p.id, 'reject', reason||'');
-        };
-        wrap.appendChild(div);
-      }
-    }
-
-    async function loadReports(){
-      const res = await fetch('/api/api.js?route=list_reports', { headers: { 'x-mod-code': state.modToken || '' }});
-      const reports = res.ok ? await res.json() : [];
-      const wrap = document.getElementById('reportList');
-      wrap.innerHTML = reports.map(r=>`<div class="text-sm bg-base-900/60 border border-white/10 rounded-lg p-2">${r.reason} — <span class="opacity-70">${r.targetType}:${r.targetId}</span></div>`).join('');
-    }
-
-    async function moderate(id, action, reason=''){
-      const res = await fetch(`/api/api.js?route=moderate&id=${id}`, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-mod-code': state.modToken || ''}, body: JSON.stringify({ action, reason })});
-      if (!res.ok) { alert(await res.text()); return; }
-      await loadHold();
-      await loadFeed();
-    }
-  </script>
+// add some starter nodes
+state.nodes.push({ id:gid(), type:'rect', x:60, y:60, w:300, h:160, r:18, fill:'#1a2034', stroke:'#2b3350', strokeSize:2, opacity:100, shadow:true });
+state.nodes.push({ id:gid(), type:'text', x:80, y:88, w:260, h:40, r:0, fill:'#e9ecf1', stroke:'#141824', strokeSize:0, opacity:100, text:'Hello Maverick', font:'700 28px Inter', align:'center' });
+render();
+</script>
 </body>
 </html>
