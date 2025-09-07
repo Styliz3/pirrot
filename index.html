@@ -1,199 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Clipscribe AI — Groq Whisper</title>
-  <link rel="icon" href="data:,"> <!-- prevent 404 favicon.ico -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multiplayer Chat Room</title>
   <style>
-    :root { --bg:#0d0d0f;--panel:#1a1a1e;--text:#f0f0f3;--muted:#9aa0aa;--brand:#ff2d55; }
-    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "Inter",system-ui,sans-serif}
-    header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:#111;border-bottom:1px solid #222}
-    .brand{font-weight:800;font-size:18px}
-    .btn{padding:8px 14px;border-radius:8px;background:var(--brand);border:none;color:#fff;font-weight:600;cursor:pointer;font-size:14px}
-    main{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:16px}
-    .card{background:var(--panel);border-radius:12px;padding:14px}
-    .controls label{font-size:13px;color:var(--muted);margin-top:8px;display:block}
-    .controls select,.controls button,.controls input{width:100%;margin-top:4px;padding:8px 10px;border-radius:8px;border:1px solid #333;background:#222;color:#fff}
-    .controls .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-    .player{position:relative;width:100%;max-width:400px;margin:auto;background:#000;border-radius:12px;overflow:hidden}
-    video{width:100%;height:auto;display:block}
-    .captions{position:absolute;left:50%;transform:translateX(-50%);cursor:move;user-select:none}
-    .caption-line{font-size:clamp(16px,4vw,28px);font-weight:800;color:#fff;text-shadow:2px 2px 0 #000,-2px -2px 0 #000,0 0 8px #000;white-space:pre-wrap;text-align:center}
-    .caption-line .em{color:#ffe46b}
-    .timeline{margin-top:10px;max-height:140px;overflow-y:auto;font-size:13px}
-    .timeline div{margin-bottom:4px;padding:4px 6px;border-radius:6px;background:#2a2a2d;cursor:pointer}
-    pre{font-size:12px;white-space:pre-wrap;color:var(--muted);margin-top:10px}
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f0f13;
+      color: #f1f1f1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      padding: 12px;
+      background: #1a1a1f;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .msg {
+      margin: 6px 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      max-width: 70%;
+    }
+    .me {
+      background: #7c5cff;
+      align-self: flex-end;
+    }
+    .other {
+      background: #2a2a33;
+      align-self: flex-start;
+    }
+    #inputBox {
+      display: flex;
+      padding: 12px;
+      background: #1a1a1f;
+    }
+    #input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+    #send {
+      margin-left: 8px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #7c5cff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
-  <script>
-    const { createFFmpeg, fetchFile } = FFmpeg; // ✅ make FFmpeg usable
-  </script>
 </head>
 <body>
-  <header>
-    <div class="brand">🎬 Clipscribe AI</div>
-    <button id="uploadBtn" class="btn">Upload</button>
-  </header>
+  <header>💬 Multiplayer Chat Room</header>
+  <div id="chat"></div>
+  <div id="inputBox">
+    <input id="input" type="text" placeholder="Type a message..." />
+    <button id="send">Send</button>
+  </div>
 
-  <main>
-    <div class="card controls">
-      <label>Groq API Key</label>
-      <input id="apiKey" type="password" placeholder="Enter your Groq API key" />
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
 
-      <input id="file" type="file" accept="video/*" style="display:none" />
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
 
-      <label>Words per subtitle</label>
-      <select id="wordsPer"><option value="1">1</option><option value="3" selected>3</option></select>
+    let username = "User" + Math.floor(Math.random() * 1000);
 
-      <label>Emphasize every</label>
-      <select id="emEvery"><option value="0">None</option><option value="3">3rd</option><option value="5">5th</option></select>
+    function appendMsg(text, isMe = false) {
+      const div = document.createElement("div");
+      div.classList.add("msg");
+      div.classList.add(isMe ? "me" : "other");
+      div.innerText = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
 
-      <div class="actions">
-        <button id="go">Generate</button>
-        <button id="downloadVTT" disabled>Download VTT</button>
-        <button id="export" disabled>Export MP4</button>
-      </div>
-      <pre id="log"></pre>
-    </div>
+    send.onclick = () => {
+      const text = input.value.trim();
+      if (text) {
+        socket.emit("message", { user: username, text });
+        appendMsg(`Me: ${text}`, true);
+        input.value = "";
+      }
+    };
 
-    <div class="card">
-      <div class="player" id="player">
-        <video id="video" controls></video>
-        <div class="captions" id="captions" style="bottom:8%;">
-          <div class="caption-line" id="caption"></div>
-        </div>
-      </div>
-      <h4 style="margin-top:10px">Caption Timeline Preview</h4>
-      <div class="timeline" id="timeline"></div>
-    </div>
-  </main>
-
-<script>
-const apiKeyEl=document.getElementById('apiKey');
-const fileEl=document.getElementById('file');
-const uploadBtn=document.getElementById('uploadBtn');
-const videoEl=document.getElementById('video');
-const captionsWrap=document.getElementById('captions');
-const captionEl=document.getElementById('caption');
-const wordsPerEl=document.getElementById('wordsPer');
-const emEveryEl=document.getElementById('emEvery');
-const goBtn=document.getElementById('go');
-const dlBtn=document.getElementById('downloadVTT');
-const expBtn=document.getElementById('export');
-const logEl=document.getElementById('log');
-const tlEl=document.getElementById('timeline');
-
-let cues=[],lastURL;
-let captionY = 0.92; // relative vertical pos (default ~92% of video height)
-
-// Upload button
-uploadBtn.addEventListener('click',()=>fileEl.click());
-function log(m){logEl.textContent+="\\n"+m;}
-
-// File preview
-fileEl.onchange=()=>{const f=fileEl.files?.[0];if(!f)return;if(lastURL)URL.revokeObjectURL(lastURL);lastURL=URL.createObjectURL(f);videoEl.src=lastURL;log('Video loaded.');};
-
-// Groq API
-async function transcribeWithGroq(file, apiKey){
-  const formData=new FormData();
-  formData.append("file",file);
-  formData.append("model","whisper-large-v3");
-  const resp=await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
-    method:"POST",
-    headers:{Authorization:`Bearer ${apiKey}`},
-    body:formData
-  });
-  if(!resp.ok) throw new Error("Groq API error: "+resp.status);
-  return await resp.json();
-}
-
-function groupWords(words,n){const g=[];for(let i=0;i<words.length;i+=n){const s=words.slice(i,i+n);g.push({text:s.map(w=>w.word).join(' '),start:s[0].start,end:s[s.length-1].end});}return g;}
-
-function attachOverlay(groups,every){
-  cues=groups;
-  videoEl.ontimeupdate=()=>{
-    const t=videoEl.currentTime;const c=cues.find(x=>t>=x.start&&t<=x.end);
-    if(!c){captionEl.innerHTML='';return;}
-    if(every>0){
-      captionEl.innerHTML=c.text.split(/\\s+/).map((w,i)=>((i+1)%every===0?`<span class='em'>${w}</span>`:w)).join(' ');
-    } else captionEl.textContent=c.text;
-  }
-}
-
-function renderTimeline(groups){
-  tlEl.innerHTML='';
-  groups.forEach((g,i)=>{
-    const d=document.createElement('div');
-    d.textContent=`${i+1}. [${g.start.toFixed(1)}s - ${g.end.toFixed(1)}s] ${g.text}`;
-    d.onclick=()=>{ videoEl.currentTime=g.start+0.1; videoEl.play(); };
-    tlEl.appendChild(d);
-  });
-}
-
-// Make captions draggable
-let isDragging=false,startY=0,origY=0;
-captionsWrap.addEventListener("mousedown",(e)=>{
-  isDragging=true;startY=e.clientY;origY=captionsWrap.offsetTop;
-  e.preventDefault();
-});
-window.addEventListener("mousemove",(e)=>{
-  if(!isDragging) return;
-  const player=document.getElementById("player");
-  const dy=e.clientY-startY;
-  let newTop=origY+dy;
-  newTop=Math.max(0,Math.min(newTop,player.clientHeight-50));
-  captionsWrap.style.top=newTop+"px";
-  captionsWrap.style.bottom="auto";
-  captionY=newTop/player.clientHeight; // save relative
-});
-window.addEventListener("mouseup",()=>{isDragging=false;});
-
-// Main generate
-async function generate(){
-  const f=fileEl.files?.[0];const apiKey=apiKeyEl.value.trim();
-  if(!apiKey){alert("Enter Groq API key");return;}
-  if(!f){alert("Pick a video");return;}
-  goBtn.disabled=true;dlBtn.disabled=true;expBtn.disabled=true;captionEl.textContent='';log('Sending to Groq...');
-  try{
-    const data=await transcribeWithGroq(f,apiKey);
-    log("Got transcription.");
-    const allWords=[];
-    (data.segments||[]).forEach(seg=>{
-      if(seg.words){seg.words.forEach(w=>allWords.push({word:w.word,start:w.start,end:w.end}));}
-      else allWords.push({word:seg.text,start:seg.start,end:seg.end});
+    input.addEventListener("keypress", e => {
+      if (e.key === "Enter") send.click();
     });
-    const groups=groupWords(allWords,parseInt(wordsPerEl.value));
-    attachOverlay(groups,parseInt(emEveryEl.value));
-    renderTimeline(groups);
 
-    const vtt='WEBVTT\\n\\n'+groups.map((g,i)=>`${i+1}\\n00:00:${g.start.toFixed(3)} --> 00:00:${g.end.toFixed(3)}\\n${g.text}\\n`).join('\\n');
-    const blob=new Blob([vtt],{type:'text/vtt'});const url=URL.createObjectURL(blob);
-    dlBtn.disabled=false;dlBtn.onclick=()=>{const a=document.createElement('a');a.href=url;a.download='captions.vtt';a.click();};
-    expBtn.disabled=false;expBtn.onclick=()=>exportVideo(f,groups);
-    log("✅ Done! Preview & drag captions before export.");
-  }catch(e){log("Error: "+e.message);}
-  goBtn.disabled=false;
-}
-
-goBtn.onclick=()=>generate();
-
-// Export with ffmpeg
-async function exportVideo(file,groups){
-  log('Exporting MP4 with captions...');
-  const ffmpeg=createFFmpeg({log:true});
-  await ffmpeg.load();
-  ffmpeg.FS('writeFile','input.mp4',await fetchFile(file));
-  const filter=groups.map(g=>{
-    const safe=g.text.replace(/'/g,"\\'").replace(/:/g,"\\:");
-    return `drawtext=text='${safe}':fontcolor=white:fontsize=40:borderw=3:enable='between(t,${g.start},${g.end})':x=(w-text_w)/2:y=${Math.floor(captionY*720)}`;
-  }).join(",");
-  await ffmpeg.run('-i','input.mp4','-vf',filter,'-c:a','copy','out.mp4');
-  const data=ffmpeg.FS('readFile','out.mp4');
-  const url=URL.createObjectURL(new Blob([data.buffer],{type:'video/mp4'}));
-  const a=document.createElement('a');a.href=url;a.download='captioned.mp4';a.click();
-  log('🎉 Export complete!');
-}
-</script>
+    socket.on("message", msg => {
+      if (msg.user !== username) {
+        appendMsg(`${msg.user}: ${msg.text}`);
+      }
+    });
+  </script>
 </body>
 </html>
