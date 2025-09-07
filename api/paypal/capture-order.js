@@ -15,9 +15,9 @@ async function getAccessToken() {
 
 export default async function handler(req, res) {
   try {
-    if(req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+    if(req.method !== 'POST') return res.status(405).json({ error:'method_not_allowed' });
     const { orderId } = req.body || {};
-    if(!orderId) return res.status(400).json({ error: 'missing_order_id' });
+    if(!orderId) return res.status(400).json({ error:'missing_order_id' });
 
     const access = await getAccessToken();
     const r = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}/capture`, {
@@ -26,14 +26,10 @@ export default async function handler(req, res) {
       body: '{}'
     });
     const j = await r.json();
-    if(!r.ok) return res.status(500).json({ error: 'capture_failed', details: j });
-
-    // Optional: sanity check final amount here as extra safety.
-    // Normally not needed because we created the order server-side with the exact amount.
-
-    return res.status(200).json({ ok: true, details: j });
+    if(!r.ok) return res.status(500).json({ error:'capture_failed', details:j });
+    res.status(200).json({ ok:true, details:j });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'server_error' });
+    res.status(500).json({ error:'server_error' });
   }
 }
