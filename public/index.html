@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Steal a Brainrot — Store</title>
+<meta name="theme-color" content="#06b6d4" />
+<style>
+  :root{--bg:#080c11;--panel:#0c1219;--card:#0f1720;--text:#e6f0ff;--muted:#a7b3c4;--brand:#06b6d4;--brand2:#22d3ee;--ring:rgba(34,211,238,.45)}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;background:radial-gradient(1400px 600px at -10% -20%, rgba(34,211,238,.10), transparent 55%),radial-gradient(1000px 600px at 110% 10%, rgba(124,58,237,.10), transparent 55%),linear-gradient(180deg,#080c11,#0a1117 35%,#091219);color:var(--text)}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:42px;height:42px;border-radius:12px;background:conic-gradient(from 0deg,var(--brand),#7c3aed,var(--brand2),var(--brand));box-shadow:0 14px 38px rgba(6,182,212,.35)}
+  .title{font-weight:800;letter-spacing:.3px}
+  .chip{padding:8px 12px;border:1px solid rgba(148,163,184,.18);border-radius:999px;color:var(--muted);background:rgba(2,8,23,.5)}
+  .hero{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.012));border:1px solid rgba(148,163,184,.15);border-radius:22px;padding:24px;margin-bottom:18px}
+  .hero h1{margin:0;font-size:clamp(26px,4.8vw,40px);line-height:1.1}
+  .hero p{margin:8px 0 0;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:16px}
+  @media (min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+  .card{background:var(--card);border:1px solid rgba(148,163,184,.18);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+  .media{display:grid;place-items:center;padding:18px;background:radial-gradient(400px 160px at 40% 30%, rgba(34,211,238,.10), transparent 60%)}
+  .media img{width:100%;height:300px;object-fit:contain;filter:drop-shadow(0 16px 40px rgba(2,8,23,.8))}
+  .body{padding:18px;display:grid;gap:8px}
+  .h2{font-size:20px;margin:0}
+  .muted{color:var(--muted)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .price{font-weight:800;font-size:22px;background:linear-gradient(90deg,var(--brand2),#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;height:44px;border-radius:12px;border:1px solid rgba(148,163,184,.25);background:rgba(2,8,23,.5);color:var(--text);cursor:pointer}
+  .btn-primary{border:none;background:linear-gradient(180deg,var(--brand),var(--brand2));color:#061014;box-shadow:0 14px 36px rgba(6,182,212,.40),inset 0 1px 0 rgba(255,255,255,.5)}
+  .cart{position:sticky;top:18px;height:fit-content}
+  .panel{background:var(--panel);border:1px solid rgba(148,163,184,.22);border-radius:18px;padding:16px;display:grid;gap:10px}
+  .line{display:flex;justify-content:space-between}
+  input[type="number"],input[type="text"],input[type="email"]{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.25);background:rgba(2,8,23,.5);color:var(--text);outline:none}
+  input:focus{border-color:var(--brand2);box-shadow:0 0 0 6px var(--ring)}
+  footer.site{max-width:1100px;margin:24px auto;padding:0 28px 28px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><div class="logo"></div><div class="title">Steal a Brainrot — Store</div></div>
+      <div class="chip">Secure • PayPal Checkout</div>
+    </header>
+
+    <section class="hero">
+      <h1>Instant delivery for Roblox items</h1>
+      <p>Choose your item, enter your Roblox username, and pay securely with PayPal. Amounts are locked server-side.</p>
+    </section>
+
+    <section class="grid" aria-label="Store">
+      <!-- Products -->
+      <div class="list">
+        <!-- Product 1 -->
+        <article class="card" data-sku="tralalita-100kps" data-name="Tralalita tralala（100K/s）" data-eur="3" data-usd="3">
+          <div class="media">
+            <img src="https://www.lolga.com/uploads/images/goods/steal-a-brainrot/all-server-tralalita-tralala.png?v=1" alt="Tralalita tralala (100K/s)" />
+          </div>
+          <div class="body">
+            <h2 class="h2">Tralalita tralala（100K/s）</h2>
+            <p class="muted">All servers • Smooth delivery</p>
+            <div class="row"><span class="price">€3 / $3</span><button class="btn btn-primary add">Buy now!</button></div>
+          </div>
+        </article>
+
+        <!-- More items can be duplicated here with new data-sku and price attrs -->
+        <article class="card" data-sku="soon-1" data-name="Mystery Drop (Coming Soon)" data-eur="5" data-usd="5">
+          <div class="media"><img src="https://dummyimage.com/800x420/0b1220/92a2b5&text=Coming+Soon" alt="Coming soon" /></div>
+          <div class="body">
+            <h2 class="h2">Mystery Drop (Coming Soon)</h2>
+            <p class="muted">Teaser listing</p>
+            <div class="row"><span class="price">€5 / $5</span><button class="btn add" disabled>Notify me</button></div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Cart / Checkout -->
+      <aside class="cart">
+        <div class="panel">
+          <h3 style="margin:0 0 4px">Checkout</h3>
+          <label>Roblox username</label>
+          <input id="username" placeholder="your exact Roblox username" autocomplete="nickname" />
+          <label style="margin-top:6px">Email for updates</label>
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+          <div class="line"><span>Currency</span>
+            <select id="currency">
+              <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
+            </select>
+          </div>
+          <div id="summary" class="muted">Cart empty</div>
+          <div id="paypal-button-container"></div>
+          <small class="muted">You’ll complete payment with PayPal. We don’t store card data.</small>
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <footer class="site">© <span id="year"></span> Steal a Brainrot — Store</footer>
+
+  <!-- PayPal JS SDK (client-id injected by server for security) -->
+  <script src="/sdk.js"></script>
+
+  <script>
+    const cart = [];
+    const currencyEl = document.getElementById('currency');
+    const usernameEl = document.getElementById('username');
+    const emailEl = document.getElementById('email');
+    const summaryEl = document.getElementById('summary');
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    function renderSummary(){
+      if(!cart.length){ summaryEl.textContent = 'Cart empty'; return; }
+      const ccy = currencyEl.value;
+      const total = cart.reduce((s,i)=> s + (ccy==='EUR'?Number(i.eur):Number(i.usd))*i.qty, 0);
+      summaryEl.textContent = cart.map(i => `${i.name} x${i.qty}`).join(' · ') + ` — Total ${ccy==='EUR'?'€':'$'}${total}`;
+    }
+
+    // Add to cart
+    document.querySelectorAll('.card .add').forEach(btn=>{
+      btn?.addEventListener('click', (e)=>{
+        const card = e.target.closest('.card');
+        const item = {
+          sku: card.dataset.sku, name: card.dataset.name,
+          eur: card.dataset.eur, usd: card.dataset.usd, qty: 1
+        };
+        const existing = cart.find(x=>x.sku===item.sku);
+        if(existing) existing.qty += 1; else cart.push(item);
+        renderSummary();
+      });
+    });
+
+    currencyEl.addEventListener('change', renderSummary);
+
+    // Initialize PayPal Buttons once SDK is loaded
+    window.initPayPalButtons = function(clientId){
+      if(!window.paypal){ console.error('PayPal SDK failed to load'); return; }
+      paypal.Buttons({
+        style: { layout: 'vertical', shape: 'pill' },
+
+        createOrder: async () => {
+          if(!cart.length) return alert('Add at least one item.') || false;
+          if(!usernameEl.value.trim()) return alert('Enter your Roblox username.') || false;
+          if(!/^\S+@\S+\.\S+$/.test(emailEl.value)) return alert('Enter a valid email.') || false;
+
+          const res = await fetch('/api/paypal/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              currency: currencyEl.value,
+              items: cart,
+              meta: { username: usernameEl.value.trim(), email: emailEl.value.trim() }
+            })
+          });
+          const data = await res.json();
+          if(!res.ok){ alert(data.error || 'Failed to create order'); return false; }
+          return data.id; // PayPal order ID
+        },
+
+        onApprove: async (data) => {
+          const res = await fetch('/api/paypal/capture-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: data.orderID })
+          });
+          const out = await res.json();
+          if(!res.ok){ alert(out.error || 'Capture failed'); return; }
+          alert('Payment successful! We’ll deliver to: ' + usernameEl.value.trim());
+          cart.length = 0; renderSummary();
+        },
+
+        onError: (err) => {
+          console.error(err);
+          alert('Payment error. Try again.');
+        }
+      }).render('#paypal-button-container');
+    };
+  </script>
+</body>
+</html>
