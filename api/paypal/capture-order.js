@@ -1,5 +1,6 @@
 // api/paypal/capture-order.js
-const PAYPAL_API = 'https://api-m.paypal.com';
+const LIVE = true; // set to false for sandbox
+const PAYPAL_API = LIVE ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 
 async function getAccessToken() {
   const auth = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_SECRET}`).toString('base64');
@@ -15,9 +16,9 @@ async function getAccessToken() {
 
 export default async function handler(req, res) {
   try {
-    if(req.method !== 'POST') return res.status(405).json({ error:'method_not_allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ error:'method_not_allowed' });
     const { orderId } = req.body || {};
-    if(!orderId) return res.status(400).json({ error:'missing_order_id' });
+    if (!orderId) return res.status(400).json({ error:'missing_order_id' });
 
     const access = await getAccessToken();
     const r = await fetch(`${PAYPAL_API}/v2/checkout/orders/${orderId}/capture`, {
@@ -26,7 +27,8 @@ export default async function handler(req, res) {
       body: '{}'
     });
     const j = await r.json();
-    if(!r.ok) return res.status(500).json({ error:'capture_failed', details:j });
+    if (!r.ok) return res.status(500).json({ error:'capture_failed', details:j });
+
     res.status(200).json({ ok:true, details:j });
   } catch (e) {
     console.error(e);
