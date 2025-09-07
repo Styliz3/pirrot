@@ -1,42 +1,93 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>ContentAssets.io — Free Sound Effects</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>URL Shortener</title>
   <style>
-    body { margin:0; font-family: system-ui, sans-serif; background:#fff; color:#111; }
-    .container { max-width: 960px; margin:auto; padding:20px; }
-    .nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-    .brand { font-weight:700; font-size:20px; }
-    .btn { padding:8px 14px; border-radius:12px; border:1px solid #ddd; background:#111; color:#fff; cursor:pointer; }
-    .btn.secondary { background:#f3f3f3; color:#111; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
-    .card { border:1px solid #ddd; border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:8px; background:#fff; }
-    .card h3 { margin:0; font-size:16px; }
-    .tag { display:inline-block; background:#eee; padding:2px 8px; border-radius:12px; font-size:12px; margin-right:6px; }
-    .sticky { position:fixed; bottom:10px; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ddd; border-radius:16px; padding:10px 16px; box-shadow:0 4px 8px rgba(0,0,0,.05); display:none; gap:8px; }
-    .order { border:1px solid #ddd; border-radius:16px; padding:16px; }
-    input { padding:8px; border-radius:8px; border:1px solid #ddd; width:100%; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f1115;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      color: #61dafb;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #1a1d24;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    input {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      background: #61dafb;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #4fb3d9;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #0ff;
+    }
+    a {
+      color: #0ff;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="nav">
-      <div class="brand">ContentAssets<span style="color:#666">.io</span></div>
-      <button id="nav-explore" class="btn secondary">Explore</button>
-    </div>
+  <h1>🔗 URL Shortener</h1>
+  <form id="shortenForm">
+    <input type="url" id="longUrl" placeholder="Enter your long URL" required />
+    <input type="text" id="customAlias" placeholder="Custom alias (optional)" />
+    <button type="submit">Shorten</button>
+  </form>
+  <div id="result"></div>
 
-    <main id="app"></main>
+  <script>
+    const form = document.getElementById("shortenForm");
+    const resultDiv = document.getElementById("result");
 
-    <div id="packBar" class="sticky">
-      <span id="packCount">0 selected</span>
-      <button id="downloadZip" class="btn">Download ZIP</button>
-      <button id="clearPack" class="btn secondary">Clear</button>
-    </div>
-  </div>
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const longUrl = document.getElementById("longUrl").value;
+      const customAlias = document.getElementById("customAlias").value;
 
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="./app.js"></script>
+      const res = await fetch("/api/app", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ longUrl, customAlias }),
+      });
+
+      const data = await res.json();
+      if (data.shortUrl) {
+        resultDiv.innerHTML = `Shortened URL: <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>`;
+      } else {
+        resultDiv.textContent = "❌ Error: " + data.error;
+      }
+    });
+  </script>
 </body>
 </html>
